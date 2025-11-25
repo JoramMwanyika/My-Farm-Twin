@@ -1,11 +1,51 @@
 # 🌾 My Farm Twin - AI-Powered Smart Farming Assistant
 
+> **Hackathon Submission Project**
+
 My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farming advisor designed specifically for smallholder farmers in Kenya and across Africa. It bridges the technology gap by providing accessible, multilingual agricultural insights powered by Azure AI services.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)
 ![Azure AI](https://img.shields.io/badge/Azure-AI%20Services-0078D4?style=flat-square&logo=microsoft-azure)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+
+---
+
+## 📋 Hackathon Submission
+
+### Project Overview
+**My Farm Twin** solves the critical challenge of limited access to agricultural expertise for smallholder farmers in Africa. By combining Azure AI services with an intuitive multilingual interface, farmers can get instant farming advice, detect plant diseases, monitor their farms, and receive alerts—all through voice interaction in their native language (English, Kiswahili, or French).
+
+### Technologies Used
+- **Azure OpenAI (GPT-4)** - Intelligent farming advice and contextual recommendations
+- **Azure Computer Vision** - Plant disease detection and image analysis
+- **Azure Speech Service** - Multilingual voice recognition and text-to-speech
+- **Azure Translator** - Real-time translation across 60+ languages
+- **Next.js 16** - Modern React framework with Turbopack
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Responsive, mobile-first UI design
+
+### Team Members
+- **Kalanza Victor** - [@GitHub](https://github.com/KalanzaVictor)
+- **Lewis Machabe** - [@1239sachet](https://github.com/1239sachet)
+- **Joram Mwanyika** - [@JoramMwanyika](https://github.com/JoramMwanyika)
+
+### Links
+- **📹 Demo Video (Part 1)**: [https://www.loom.com/share/d282110701b54070abe5cd8b10c9e096](https://www.loom.com/share/d282110701b54070abe5cd8b10c9e096)
+- **📹 Demo Video (Part 2)**: [https://www.loom.com/share/f864ab08ee9f4fd9b7aee448be1c06c5](https://www.loom.com/share/f864ab08ee9f4fd9b7aee448be1c06c5)
+- **💻 Repository**: [https://github.com/JoramMwanyika/My-Farm-Twin](https://github.com/JoramMwanyika/My-Farm-Twin)
+- **🚀 Live Demo**: [Coming Soon]
+
+### Submission Details
+Please submit through: **[Hackathon Submission Page](https://github.com/armely/Hackathon/issues)**
+
+**Required Submission Items:**
+1. ✅ Short project description (above)
+2. ✅ Project Repository URL
+3. ⏳ Project Demo Video URL (upload to YouTube)
+4. ✅ Team Members with GitHub usernames
+
+---
 
 ## ✨ Features
 
@@ -382,8 +422,11 @@ Contributions are welcome! Please follow these steps:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
+## 👥 Authors & Team
 
+### Hackathon Team
+- **Kalanza Victor** - [@GitHub](https://github.com/KalanzaVictor)
+- **Lewis Machabe** - [@1239sachet](https://github.com/1239sachet)
 - **Joram Mwanyika** - [@JoramMwanyika](https://github.com/JoramMwanyika)
 
 ## 🙏 Acknowledgments
@@ -392,31 +435,29 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **shadcn/ui** for beautiful, accessible components
 - **Next.js Team** for the amazing framework
 - **Smallholder farmers** who inspired this project
+- **Hackathon Organizers** for the opportunity to build impactful solutions
 
 ## 📞 Support
 
 For questions or support:
 - Open an [issue](https://github.com/JoramMwanyika/My-Farm-Twin/issues)
-- Email: [your-email@example.com]
-- Twitter: [@YourHandle]
+- Contact team members via GitHub
 
-## 🚀 Deployment
+---
 
-### Vercel (Recommended)
+## 🎯 Hackathon Submission Reminder
 
-1. Push your code to GitHub
-2. Import project on [Vercel](https://vercel.com)
-3. Add environment variables
-4. Deploy!
+**Submit your project here:** [https://github.com/armely/Hackathon/issues](https://github.com/armely/Hackathon/issues)
 
-### Other Platforms
-
-The app can be deployed to any platform that supports Next.js:
-- Netlify
-- AWS Amplify
-- Azure Static Web Apps
-- Railway
-- Render
+**Submission Checklist:**
+- [ ] Upload project demo video to YouTube
+- [ ] Fill out submission form with:
+  - [ ] Project description
+  - [ ] Repository URL: `https://github.com/JoramMwanyika/My-Farm-Twin`
+  - [ ] Demo video URL
+  - [ ] Team members: Kalanza Victor, Lewis Machabe (1239sachet), Joram Mwanyika (JoramMwanyika)
+- [ ] Verify all links work correctly
+- [ ] Submit before deadline
 
 ---
 
