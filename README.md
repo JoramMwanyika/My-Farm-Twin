@@ -27,7 +27,7 @@ My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farmi
 
 ### Team Members
 - **Kalanza Victor** - [@GitHub](https://github.com/KalanzaVictor)
-- **Lewis Machabe** - [@1239sachet](https://github.com/1239sachet)
+- **Lewis Machabe** - [@1239sachet](https://github.com/1249sachet)
 - **Joram Mwanyika** - [@JoramMwanyika](https://github.com/JoramMwanyika)
 
 ### Links
