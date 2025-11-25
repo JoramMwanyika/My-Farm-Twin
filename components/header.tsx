@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 
 export function Header({ title = "AgriVoice" }: { title?: string }) {
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#F0EFE9]/95 backdrop-blur supports-[backdrop-filter]:bg-[#F0EFE9]/60 border-b border-[#D1CEC4] dark:bg-[#0F231B]/95 dark:border-[#243D31]">
+    <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border dark:bg-background/95 dark:border-border">
       <div className="container flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="-ml-2">
