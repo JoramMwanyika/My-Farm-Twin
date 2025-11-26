@@ -1,11 +1,18 @@
-import { Leaf } from "lucide-react"
-import Link from "next/link"
+"use client";
+
+import { Leaf, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "./ui/button";
 
 export function Header({ title = "AgriVoice" }: { title?: string }) {
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
+
   return (
     <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-[#1FAA59] via-[#22C55E] to-[#16A34A] shadow-lg shadow-green-500/20">
       <div className="container flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href={isAuthenticated ? "/farm" : "/"} className="flex items-center gap-2.5 group">
           <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110 shadow-inner">
             <Leaf className="h-6 w-6 text-white" />
           </div>
@@ -17,12 +24,38 @@ export function Header({ title = "AgriVoice" }: { title?: string }) {
           </div>
         </Link>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-            <div className="h-2 w-2 rounded-full bg-green-300 animate-pulse" />
-            <span className="text-xs font-medium text-white">AI Active</span>
-          </div>
+          {isAuthenticated ? (
+            <>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
+                <div className="h-2 w-2 rounded-full bg-green-300 animate-pulse" />
+                <span className="text-xs font-medium text-white">AI Active</span>
+              </div>
+              <Button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold shadow-md">
+                  Get Started
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
-  )
+  );
 }

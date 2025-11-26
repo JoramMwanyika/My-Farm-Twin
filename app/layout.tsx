@@ -2,6 +2,7 @@ import type React from "react"
 import { DM_Sans, DM_Serif_Display } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
+import { AuthProvider } from "@/components/auth-provider"
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -23,8 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${dmSerif.variable}`}>
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )
