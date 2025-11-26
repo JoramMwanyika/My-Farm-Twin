@@ -38,7 +38,7 @@ export default function LoginPage() {
         toast.success("Welcome back!", {
           description: "Redirecting to your dashboard...",
         });
-        router.push("/farm");
+        router.push("/dashboard");
         router.refresh();
       }
     } catch (error) {

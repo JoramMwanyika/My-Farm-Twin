@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,8 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,10 +44,116 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import Link from "next/link";
 
+interface WeatherData {
+  main: {
+    temp: number;
+    feels_like: number;
+    humidity: number;
+    pressure: number;
+  };
+  weather: Array<{
+    main: string;
+    description: string;
+    icon: string;
+  }>;
+  wind: {
+    speed: number;
+  };
+  clouds: {
+    all: number;
+  };
+  name: string;
+  coord: {
+    lat: number;
+    lon: number;
+  };
+}
+
 export default function Dashboard() {
   const [isCheckCropsOpen, setIsCheckCropsOpen] = useState(false);
   const [isLogWaterOpen, setIsLogWaterOpen] = useState(false);
   const [waterAmount, setWaterAmount] = useState([20]);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(true);
+  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationName, setLocationName] = useState("Nairobi");
+
+  // Get user's location and fetch weather
+  useEffect(() => {
+    const getLocationAndWeather = async () => {
+      try {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const { latitude, longitude } = position.coords;
+              setLocation({ lat: latitude, lon: longitude });
+              await fetchWeather(latitude, longitude);
+            },
+            async (error) => {
+              console.log("Location permission denied, using default location");
+              // Fallback to default location (Nairobi)
+              await fetchWeather();
+            }
+          );
+        } else {
+          await fetchWeather();
+        }
+      } catch (error) {
+        console.error("Error getting location:", error);
+        await fetchWeather();
+      }
+    };
+
+    getLocationAndWeather();
+  }, []);
+
+  const fetchWeather = async (lat?: number, lon?: number) => {
+    setIsLoadingWeather(true);
+    try {
+      let url = '/api/weather';
+      if (lat && lon) {
+        url += `?lat=${lat}&lon=${lon}`;
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      setWeather(data);
+      setLocationName(data.name);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+      toast.error("Failed to load weather data");
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  };
+
+  const handleLocationChange = async (city: string) => {
+    setLocationName(city);
+    setIsLoadingWeather(true);
+    try {
+      const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+      const data = await response.json();
+      setWeather(data);
+      setLocation({ lat: data.coord.lat, lon: data.coord.lon });
+      toast.success(`Weather updated for ${city}`);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+      toast.error("Failed to update weather");
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  };
+
+  const getWeatherIcon = (iconCode: string) => {
+    const hour = new Date().getHours();
+    const isDaytime = hour >= 6 && hour < 18;
+    
+    if (iconCode.includes('01')) return isDaytime ? <Sun className="h-16 w-16 opacity-80 animate-pulse" /> : <Sun className="h-16 w-16 opacity-60" />;
+    if (iconCode.includes('02') || iconCode.includes('03')) return <CloudRain className="h-16 w-16 opacity-80" />;
+    if (iconCode.includes('04')) return <CloudRain className="h-16 w-16 opacity-80" />;
+    if (iconCode.includes('09') || iconCode.includes('10')) return <CloudRain className="h-16 w-16 opacity-80 animate-pulse" />;
+    return <CloudRain className="h-16 w-16 opacity-80 animate-pulse" />;
+  };
 
   const quickStats = [
     { label: "Active Fields", value: "04", helper: "+1.2% vs last week" },
@@ -113,17 +221,20 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105"
-                size="lg"
-              >
-                Open Farm Timeline
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href="/farm">
+                <Button
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105"
+                  size="lg"
+                >
+                  Open Farm Timeline
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
               <Button
                 variant="secondary"
                 className="border-2 border-amber-400 bg-white text-amber-700 hover:bg-amber-50 shadow-md hover:shadow-lg transition-all duration-300"
                 size="lg"
+                onClick={() => toast.info("Export feature coming soon!")}
               >
                 Share Summary
               </Button>
@@ -205,17 +316,75 @@ export default function Dashboard() {
 
           <div className="space-y-4">
             <Card className="bg-linear-to-br from-[#1FAA59] to-[#18934B] text-white border-none shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide opacity-90 font-medium">
-                    Weather pulse
-                  </p>
-                  <p className="text-4xl font-serif font-bold">24°C</p>
-                  <p className="text-sm opacity-90">
-                    Light rain • Feels like 26°
-                  </p>
-                </div>
-                <CloudRain className="h-16 w-16 opacity-80 animate-pulse" />
+              <CardContent className="p-6">
+                {isLoadingWeather ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin opacity-80" />
+                  </div>
+                ) : weather ? (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide opacity-90 font-medium">
+                          Weather pulse
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3 w-3 opacity-80" />
+                          <span className="text-sm font-medium">{locationName}</span>
+                        </div>
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-white hover:bg-white/20 h-8"
+                          >
+                            Change
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Change Location</DialogTitle>
+                            <DialogDescription>
+                              Select a city to view its weather
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <Select onValueChange={handleLocationChange} defaultValue={locationName}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select city" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Nairobi">Nairobi, Kenya</SelectItem>
+                                <SelectItem value="Mombasa">Mombasa, Kenya</SelectItem>
+                                <SelectItem value="Kisumu">Kisumu, Kenya</SelectItem>
+                                <SelectItem value="Nakuru">Nakuru, Kenya</SelectItem>
+                                <SelectItem value="Eldoret">Eldoret, Kenya</SelectItem>
+                                <SelectItem value="Kampala">Kampala, Uganda</SelectItem>
+                                <SelectItem value="Dar es Salaam">Dar es Salaam, Tanzania</SelectItem>
+                                <SelectItem value="Kigali">Kigali, Rwanda</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <p className="text-4xl font-serif font-bold">
+                          {Math.round(weather.main.temp)}°C
+                        </p>
+                        <p className="text-sm opacity-90 capitalize">
+                          {weather.weather[0].description} • Feels like {Math.round(weather.main.feels_like)}°
+                        </p>
+                      </div>
+                      {getWeatherIcon(weather.weather[0].icon)}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-center py-8 opacity-80">Weather data unavailable</p>
+                )}
               </CardContent>
             </Card>
             <div className="grid grid-cols-3 gap-3">
@@ -225,7 +394,9 @@ export default function Dashboard() {
                     <Droplets className="h-5 w-5 text-[#1FAA59]" />
                   </div>
                   <p className="text-xs text-[#6B7280] font-medium">Humidity</p>
-                  <p className="font-bold text-[#0F172A] text-lg">65%</p>
+                  <p className="font-bold text-[#0F172A] text-lg">
+                    {weather ? `${weather.main.humidity}%` : '—'}
+                  </p>
                 </CardContent>
               </Card>
               <Card className="border-none bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -234,7 +405,9 @@ export default function Dashboard() {
                     <Wind className="h-5 w-5 text-[#1FAA59]" />
                   </div>
                   <p className="text-xs text-[#6B7280] font-medium">Wind</p>
-                  <p className="font-bold text-[#0F172A] text-lg">12 km/h</p>
+                  <p className="font-bold text-[#0F172A] text-lg">
+                    {weather ? `${Math.round(weather.wind.speed * 3.6)} km/h` : '—'}
+                  </p>
                 </CardContent>
               </Card>
               <Card className="border-none bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -242,9 +415,9 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-[#FFF7E0] w-fit mx-auto">
                     <Sun className="h-5 w-5 text-[#FFB703]" />
                   </div>
-                  <p className="text-xs text-[#6B7280] font-medium">UV index</p>
+                  <p className="text-xs text-[#6B7280] font-medium">Clouds</p>
                   <p className="font-bold text-[#0F172A] text-lg">
-                    5 • Moderate
+                    {weather ? `${weather.clouds.all}%` : '—'}
                   </p>
                 </CardContent>
               </Card>
