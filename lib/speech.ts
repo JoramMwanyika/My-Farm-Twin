@@ -128,6 +128,140 @@ export async function startSpeechRecognition(
   }
 }
 
+// Continuous speech recognition for dialogue
+export async function startContinuousRecognition(
+  onResult: (text: string, language: string) => void,
+  onError: (error: string) => void,
+  onListening: (isListening: boolean) => void,
+  language = "en",
+): Promise<{ stop: () => void } | null> {
+  try {
+    const config = await getSpeechConfig()
+    if (!config) {
+      // Fallback to browser continuous recognition
+      return startBrowserContinuousRecognition(onResult, onError, onListening, language)
+    }
+
+    const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(config.token, config.region)
+    const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
+    speechConfig.speechRecognitionLanguage = langSettings.speech
+
+    const audioConfig = sdk.AudioConfig.fromDefaultMicrophoneInput()
+    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig)
+
+    recognizer.sessionStarted = () => {
+      onListening(true)
+    }
+
+    recognizer.sessionStopped = () => {
+      onListening(false)
+    }
+
+    recognizer.recognized = (s, e) => {
+      if (e.result.reason === sdk.ResultReason.RecognizedSpeech && e.result.text) {
+        onResult(e.result.text, language)
+      }
+    }
+
+    recognizer.canceled = (s, e) => {
+      if (e.reason === sdk.CancellationReason.Error) {
+        onError(e.errorDetails)
+      }
+      recognizer.stopContinuousRecognitionAsync()
+      onListening(false)
+    }
+
+    recognizer.startContinuousRecognitionAsync(
+      () => {
+        onListening(true)
+      },
+      (error) => {
+        onError(error)
+        onListening(false)
+      },
+    )
+
+    return {
+      stop: () => {
+        recognizer.stopContinuousRecognitionAsync(
+          () => {
+            recognizer.close()
+            onListening(false)
+          },
+          (error) => {
+            console.error("Error stopping recognition:", error)
+            recognizer.close()
+            onListening(false)
+          },
+        )
+      },
+    }
+  } catch (error) {
+    return startBrowserContinuousRecognition(onResult, onError, onListening, language)
+  }
+}
+
+// Browser-based continuous recognition
+function startBrowserContinuousRecognition(
+  onResult: (text: string, language: string) => void,
+  onError: (error: string) => void,
+  onListening: (isListening: boolean) => void,
+  language = "en",
+): { stop: () => void } | null {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+  if (!SpeechRecognition) {
+    onError("Speech recognition not supported in this browser")
+    return null
+  }
+
+  const recognition = new SpeechRecognition()
+  const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
+
+  recognition.lang = langSettings.speech
+  recognition.continuous = true
+  recognition.interimResults = false
+  recognition.maxAlternatives = 1
+
+  recognition.onstart = () => {
+    onListening(true)
+  }
+
+  recognition.onend = () => {
+    onListening(false)
+  }
+
+  recognition.onresult = (event: any) => {
+    const last = event.results.length - 1
+    const transcript = event.results[last][0].transcript
+    if (transcript.trim()) {
+      onResult(transcript, language)
+    }
+  }
+
+  recognition.onerror = (event: any) => {
+    if (event.error !== 'no-speech') {
+      onError(event.error)
+    }
+  }
+
+  try {
+    recognition.start()
+  } catch (error) {
+    onError("Could not start recognition")
+  }
+
+  return {
+    stop: () => {
+      try {
+        recognition.stop()
+      } catch (e) {
+        console.error("Error stopping recognition:", e)
+      }
+    },
+  }
+}
+
 // Fallback browser-based speech recognition
 function startBrowserRecognition(
   onResult: (text: string, language: string) => void,

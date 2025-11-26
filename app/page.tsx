@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Leaf, MapPin, Users, BookOpen, Search } from "lucide-react";
+import { Leaf, MapPin, Users, BookOpen, Search, Cloud, MessageSquare, BarChart3, Camera, Sun } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -76,9 +76,14 @@ export default function LandingPage() {
 
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 backdrop-blur-sm">
-                <div className="aspect-[4/3] bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                  <Leaf className="h-32 w-32 text-white/30" />
-                </div>
+                <Image
+                  src="/community-farm.jpeg"
+                  alt="Community farmers harvesting groundnuts"
+                  width={800}
+                  height={600}
+                  className="w-full h-full object-cover"
+                  priority
+                />
               </div>
             </div>
           </div>
@@ -88,19 +93,24 @@ export default function LandingPage() {
       {/* Features Section */}
       <section id="features" className="py-20 bg-gray-900 text-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            Customized Location Tracker
-          </h2>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Key Features of AgriVoice AI
+            </h2>
+            <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+              Empowering farmers with intelligent tools for better decision-making and sustainable farming
+            </p>
+          </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="bg-gray-800 border-gray-700 hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/20">
               <CardContent className="p-8 space-y-4">
                 <div className="bg-green-600 p-4 rounded-lg w-fit">
-                  <MapPin className="h-8 w-8 text-white" />
+                  <BarChart3 className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Find out a Community Garden</h3>
+                <h3 className="text-xl font-bold text-white">Digital Farm Twin & Smart Analytics</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Locate community gardens near you and connect with local farmers using our advanced mapping technology.
+                  Create a virtual simulation of your entire farm with real-time data on soil conditions, crop health, and weather trends. Test decisions before implementing them and track performance history to learn from previous seasons.
                 </p>
               </CardContent>
             </Card>
@@ -108,11 +118,11 @@ export default function LandingPage() {
             <Card className="bg-gray-800 border-gray-700 hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/20">
               <CardContent className="p-8 space-y-4">
                 <div className="bg-green-600 p-4 rounded-lg w-fit">
-                  <Search className="h-8 w-8 text-white" />
+                  <Camera className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Virtual GPS & Community Gardens</h3>
+                <h3 className="text-xl font-bold text-white">AI-Powered Image Analysis</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Navigate to gardens with precision GPS tracking and discover community farming opportunities.
+                  Simply upload photos of your soil and crops. Our AI instantly analyzes them to detect diseases, stress levels, soil quality, and provides treatment recommendations with health status and risk assessments.
                 </p>
               </CardContent>
             </Card>
@@ -120,11 +130,23 @@ export default function LandingPage() {
             <Card className="bg-gray-800 border-gray-700 hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/20">
               <CardContent className="p-8 space-y-4">
                 <div className="bg-green-600 p-4 rounded-lg w-fit">
-                  <Leaf className="h-8 w-8 text-white" />
+                  <Cloud className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Your Community Garden</h3>
+                <h3 className="text-xl font-bold text-white">Hyper-Local Weather Intelligence</h3>
                 <p className="text-gray-300 leading-relaxed">
-                  Create and manage your own community garden space with AI-powered insights and recommendations.
+                  Get accurate micro-climate forecasts, rainfall predictions, and heat/drought alerts for your specific location. Receive automated reminders for irrigation, fertilizer application, and extreme weather via app, WhatsApp, SMS, or voice calls.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-800 border-gray-700 hover:border-green-500 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/20">
+              <CardContent className="p-8 space-y-4">
+                <div className="bg-green-600 p-4 rounded-lg w-fit">
+                  <MessageSquare className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Multilingual Voice Assistant</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  Ask questions and receive spoken explanations in Swahili, Sheng, and local languages. Get smart decision support on what to plant, when to irrigate, and fertilizer timing—making farming accessible even for low-literacy users.
                 </p>
               </CardContent>
             </Card>
@@ -132,64 +154,62 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Welcome Section */}
+      {/* Why AgriVoice Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <div className="aspect-[4/3] bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-                  <Users className="h-32 w-32 text-green-600/30" />
-                </div>
-              </div>
-              
-              <Card className="absolute -bottom-6 -right-6 bg-green-700 text-white border-none shadow-xl max-w-xs">
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium mb-2">Easy for New Gardeners</p>
-                  <p className="text-xs text-green-100">
-                    AI-guided farming makes it simple for beginners to start their journey.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-6 order-2 lg:order-1">
               <div className="inline-flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
                 <Leaf className="h-4 w-4 text-green-700" />
-                <span className="text-sm font-semibold text-green-700">Welcome to AgriVoice</span>
+                <span className="text-sm font-semibold text-green-700">Why Choose AgriVoice</span>
               </div>
               
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                Welcome your Community Garden
+                Farming Made Simple with AI Technology
               </h2>
               
               <p className="text-gray-600 leading-relaxed text-lg">
-                Join a thriving community of farmers and gardeners. Share knowledge, 
-                resources, and harvests with your neighbors while leveraging AI technology 
-                to maximize your yield.
+                AgriVoice combines cutting-edge AI with local farming knowledge to help 
+                you make smarter decisions, increase profits, and reduce losses—whether 
+                you're a seasoned farmer or just starting out.
               </p>
 
               <div className="space-y-4 pt-4">
                 <div className="flex items-start gap-4">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <BookOpen className="h-5 w-5 text-green-700" />
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <Camera className="h-6 w-6 text-green-700" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Learn & Grow Together</h4>
+                    <h4 className="font-bold text-gray-900 mb-1">Instant Crop Diagnosis</h4>
                     <p className="text-gray-600 text-sm">
-                      Access educational resources and expert advice from experienced farmers.
+                      Simply snap a photo and get AI-powered disease identification with 
+                      treatment recommendations in seconds.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <Users className="h-5 w-5 text-green-700" />
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <Cloud className="h-6 w-6 text-green-700" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 mb-1">Connect with Community</h4>
+                    <h4 className="font-bold text-gray-900 mb-1">Hyper-Local Weather Alerts</h4>
                     <p className="text-gray-600 text-sm">
-                      Network with local farmers and share your success stories.
+                      Receive micro-climate forecasts and automated alerts via app, WhatsApp, 
+                      SMS, or voice calls.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <MessageSquare className="h-6 w-6 text-green-700" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Voice-Powered Assistant</h4>
+                    <p className="text-gray-600 text-sm">
+                      Get farming advice in Swahili or Sheng—no typing needed. Perfect for 
+                      farmers with low literacy levels.
                     </p>
                   </div>
                 </div>
@@ -197,39 +217,64 @@ export default function LandingPage() {
 
               <Link href="/register">
                 <Button className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all mt-4">
-                  Sign Up Now
+                  Start Your Free Trial
                 </Button>
               </Link>
+            </div>
+
+            <div className="relative order-1 lg:order-2">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-green-100">
+                <Image
+                  src="/Chasing green 💸💰.jpeg"
+                  alt="Successful farmers using AgriVoice technology"
+                  width={700}
+                  height={500}
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+              </div>
+              
+              <div className="absolute -bottom-8 -left-8 bg-white rounded-xl shadow-2xl p-6 border-2 border-green-200 max-w-xs">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-600 p-3 rounded-full">
+                    <BarChart3 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-green-700">10,000+</p>
+                    <p className="text-sm text-gray-600">Active Farmers</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Community Garden Section */}
+      {/* Success Stories Section */}
       <section className="py-20 bg-gradient-to-br from-green-50 to-green-100">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Community Garden
+              Trusted by Farmers Across East Africa
             </h2>
             <p className="text-gray-600 text-lg">
-              Experience the future of farming with AI-powered insights, 
-              real-time monitoring, and community support.
+              Join thousands of farmers leveraging AI to increase yields, 
+              reduce losses, and make data-driven farming decisions.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <Card className="border-2 border-green-200 hover:border-green-400 transition-all hover:shadow-xl">
               <CardContent className="p-8 space-y-4">
                 <div className="bg-green-600 p-4 rounded-lg w-fit">
                   <Leaf className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">
-                  AI-Powered Farm Analysis
+                  35% Yield Increase
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Get real-time insights about soil health, crop conditions, 
-                  and weather patterns using advanced AI technology.
+                  Farmers using AgriVoice's AI recommendations report an average 
+                  35% increase in crop yields within the first season.
                 </p>
               </CardContent>
             </Card>
@@ -240,11 +285,26 @@ export default function LandingPage() {
                   <MapPin className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">
-                  Digital Farm Twin
+                  Early Disease Detection
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Visualize your entire farm in a digital replica, track progress, 
-                  and plan your activities with precision.
+                  AI-powered image analysis helps identify crop diseases up to 
+                  2 weeks earlier, preventing widespread crop loss.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-green-200 hover:border-green-400 transition-all hover:shadow-xl">
+              <CardContent className="p-8 space-y-4">
+                <div className="bg-green-600 p-4 rounded-lg w-fit">
+                  <Sun className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Weather-Smart Planning
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Hyper-local forecasts and automated alerts help farmers plan 
+                  irrigation, planting, and harvesting at optimal times.
                 </p>
               </CardContent>
             </Card>
@@ -252,33 +312,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Services Section */}
+      {/* Platform Capabilities Section */}
       <section className="py-20 bg-gray-900 text-white">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Gared's Services
+              Built for Modern Farming
             </h2>
             <h3 className="text-2xl text-green-400 mb-4">
-              Customized Location Tracker
+              Accessible Anytime, Anywhere
             </h3>
             <p className="text-gray-300 text-lg">
-              Track your garden's location for easy coordination with the community. 
-              Share resources, harvest times, and collaborate effectively.
+              AgriVoice works on any device with internet access. Get instant advice 
+              through voice, text, or images—even in low-literacy environments.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <div className="aspect-video bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
-                <MapPin className="h-24 w-24 text-white/30" />
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 hover:border-green-500 transition-all">
+              <div className="bg-green-600 p-4 rounded-lg w-fit mb-4">
+                <MessageSquare className="h-8 w-8 text-white" />
               </div>
+              <h3 className="text-xl font-bold mb-3">Voice-First Interface</h3>
+              <p className="text-gray-300">
+                Speak in Swahili or Sheng to get instant farming advice, 
+                weather updates, and recommendations.
+              </p>
             </div>
 
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <div className="aspect-video bg-gradient-to-br from-green-700 to-green-900 flex items-center justify-center">
-                <Leaf className="h-24 w-24 text-white/30" />
+            <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 hover:border-green-500 transition-all">
+              <div className="bg-green-600 p-4 rounded-lg w-fit mb-4">
+                <Camera className="h-8 w-8 text-white" />
               </div>
+              <h3 className="text-xl font-bold mb-3">Instant Image Analysis</h3>
+              <p className="text-gray-300">
+                Take a photo of your crops or soil to receive AI-powered 
+                diagnosis and treatment recommendations.
+              </p>
+            </div>
+
+            <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 hover:border-green-500 transition-all">
+              <div className="bg-green-600 p-4 rounded-lg w-fit mb-4">
+                <BarChart3 className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Real-Time Dashboard</h3>
+              <p className="text-gray-300">
+                Track your farm's performance, monitor weather patterns, 
+                and visualize trends over time.
+              </p>
             </div>
           </div>
         </div>
