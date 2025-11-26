@@ -31,8 +31,7 @@ My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farmi
 - **Joram Mwanyika** - [@JoramMwanyika](https://github.com/JoramMwanyika)
 
 ### Links
-- **📹 Demo Video (Part 1)**: [https://www.loom.com/share/d282110701b54070abe5cd8b10c9e096](https://www.loom.com/share/d282110701b54070abe5cd8b10c9e096)
-- **📹 Demo Video (Part 2)**: [https://www.loom.com/share/f864ab08ee9f4fd9b7aee448be1c06c5](https://www.loom.com/share/f864ab08ee9f4fd9b7aee448be1c06c5)
+- **📹 Demo Video**: [https://youtu.be/7l9qyusTX_M](https://youtu.be/7l9qyusTX_M)
 - **💻 Repository**: [https://github.com/JoramMwanyika/My-Farm-Twin](https://github.com/JoramMwanyika/My-Farm-Twin)
 - **🚀 Live Demo**: [Coming Soon]
 
