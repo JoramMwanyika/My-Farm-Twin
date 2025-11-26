@@ -11,14 +11,14 @@ export function BottomNav() {
   const navItems = [
     { name: "Home", icon: Home, href: "/" },
     { name: "My Farm", icon: Sprout, href: "/farm" },
-    { name: "Advisor", icon: MessageSquare, href: "/advisor" },
+    { name: "AgriVoice", icon: MessageSquare, href: "/advisor" },
     { name: "Alerts", icon: Bell, href: "/alerts" },
     { name: "Profile", icon: User, href: "/profile" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border dark:bg-background dark:border-border pb-safe shadow-sm">
-      <div className="flex justify-around items-center h-16">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-green-200 pb-safe shadow-2xl shadow-green-500/10">
+      <div className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -26,19 +26,32 @@ export function BottomNav() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center w-full h-full space-y-1",
+                "flex flex-col items-center justify-center w-full h-full space-y-1 relative transition-all duration-300 group",
                 isActive
-                  ? "text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-green-600"
+                  : "text-gray-500 hover:text-green-500"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-6 w-6",
-                  isActive && "fill-current text-primary"
-                )}
-              />
-              <span className="text-[10px] uppercase tracking-wide">
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-lg shadow-green-500/50 animate-in slide-in-from-top-2 duration-300" />
+              )}
+              <div className={cn(
+                "p-2 rounded-full transition-all duration-300",
+                isActive 
+                  ? "bg-green-100 scale-110" 
+                  : "group-hover:bg-green-50 group-hover:scale-105"
+              )}>
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 transition-all duration-300",
+                    isActive && "stroke-[2.5px]"
+                  )}
+                />
+              </div>
+              <span className={cn(
+                "text-[10px] font-medium uppercase tracking-wide transition-all duration-300",
+                isActive && "font-bold"
+              )}>
                 {item.name}
               </span>
             </Link>

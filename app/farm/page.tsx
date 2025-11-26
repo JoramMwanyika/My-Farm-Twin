@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -42,45 +43,67 @@ type FarmBlock = {
   blockName: string;
   color: string;
   progress: number;
+  gridPosition: {
+    row: number;
+    col: number;
+    rowSpan: number;
+    colSpan: number;
+  };
+  structure: 'field' | 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage';
+  description?: string;
 };
 
 const colorOptions = [
   {
     value: "primary",
     label: "Green",
-    bgClass: "bg-primary/20",
-    borderClass: "border-primary",
-    textClass: "text-primary",
+    bgClass: "bg-gradient-to-br from-green-600/30 to-green-700/20",
+    borderClass: "border-green-600",
+    textClass: "text-green-900",
+    pattern: "field",
   },
   {
     value: "yellow",
-    label: "Yellow",
-    bgClass: "bg-[#E5B045]/20",
-    borderClass: "border-[#E5B045]",
-    textClass: "text-[#7A5815]",
+    label: "Golden",
+    bgClass: "bg-gradient-to-br from-yellow-600/30 to-yellow-700/20",
+    borderClass: "border-yellow-600",
+    textClass: "text-yellow-900",
+    pattern: "field",
   },
   {
-    value: "blue",
-    label: "Blue",
-    bgClass: "bg-blue-500/20",
-    borderClass: "border-blue-500",
-    textClass: "text-blue-700",
+    value: "brown",
+    label: "Brown",
+    bgClass: "bg-gradient-to-br from-amber-800/40 to-amber-900/30",
+    borderClass: "border-amber-800",
+    textClass: "text-amber-950",
+    pattern: "plowed",
   },
   {
-    value: "red",
-    label: "Red",
-    bgClass: "bg-red-500/20",
-    borderClass: "border-red-500",
-    textClass: "text-red-700",
+    value: "lightgreen",
+    label: "Light Green",
+    bgClass: "bg-gradient-to-br from-lime-500/30 to-lime-600/20",
+    borderClass: "border-lime-600",
+    textClass: "text-lime-900",
+    pattern: "field",
   },
   {
-    value: "purple",
-    label: "Purple",
-    bgClass: "bg-purple-500/20",
-    borderClass: "border-purple-500",
-    textClass: "text-purple-700",
+    value: "darkgreen",
+    label: "Dark Green",
+    bgClass: "bg-gradient-to-br from-emerald-800/40 to-emerald-900/30",
+    borderClass: "border-emerald-800",
+    textClass: "text-emerald-950",
+    pattern: "dense",
   },
 ];
+
+const structureIcons = {
+  field: "🌾",
+  barn: "🏚️",
+  house: "🏠",
+  greenhouse: "🏡",
+  irrigation: "💧",
+  storage: "📦",
+};
 
 const snapshotStats = [
   { title: "Farm Area", value: "18.4 ha", helper: "+0.6 ha vs last year" },
@@ -97,6 +120,8 @@ export default function FarmTwinPage() {
       blockName: "Block A",
       color: "primary",
       progress: 60,
+      gridPosition: { row: 1, col: 1, rowSpan: 2, colSpan: 2 },
+      structure: "field",
     },
     {
       id: 2,
@@ -104,6 +129,35 @@ export default function FarmTwinPage() {
       blockName: "Block B",
       color: "yellow",
       progress: 85,
+      gridPosition: { row: 1, col: 3, rowSpan: 1, colSpan: 2 },
+      structure: "field",
+    },
+    {
+      id: 3,
+      cropName: "Storage",
+      blockName: "Barn",
+      color: "brown",
+      progress: 100,
+      gridPosition: { row: 3, col: 1, rowSpan: 1, colSpan: 1 },
+      structure: "barn",
+    },
+    {
+      id: 4,
+      cropName: "Greenhouse",
+      blockName: "Tomatoes",
+      color: "lightgreen",
+      progress: 45,
+      gridPosition: { row: 2, col: 3, rowSpan: 2, colSpan: 2 },
+      structure: "greenhouse",
+    },
+    {
+      id: 5,
+      cropName: "Irrigation",
+      blockName: "Water System",
+      color: "darkgreen",
+      progress: 100,
+      gridPosition: { row: 3, col: 2, rowSpan: 1, colSpan: 1 },
+      structure: "irrigation",
     },
   ]);
 
@@ -147,12 +201,16 @@ export default function FarmTwinPage() {
       toast.error("Please fill in all fields");
       return;
     }
+    
+    // Find an available grid position
     const newBlock: FarmBlock = {
       id: Date.now(),
       cropName: newCropName,
       blockName: newBlockName,
       color: newBlockColor,
       progress: 0,
+      gridPosition: { row: 4, col: 4, rowSpan: 1, colSpan: 1 }, // Default position
+      structure: 'field',
     };
     setFarmBlocks([...farmBlocks, newBlock]);
     setNewCropName("");
@@ -179,32 +237,31 @@ export default function FarmTwinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7FFF3] pb-24">
-      <Header title="My Farm Twin" />
+    <div className="min-h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8] pb-24">
+      <Header title="My Farm" />
 
       <main className="container px-4 py-6 space-y-8">
-        <section className="rounded-3xl bg-linear-to-br from-[#E6FFEA] via-white to-[#FFF9DB] border border-[#B4F0C3] p-6 shadow-sm space-y-6">
+        <section className="rounded-3xl bg-gradient-to-br from-[#E6FFEA] via-white to-[#FFF9DB] border-2 border-green-200 p-6 shadow-2xl shadow-green-100/50 space-y-6 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
-              <p className="text-xs font-semibold tracking-wide uppercase text-[#16A34A]">
-                Digital twin
+              <p className="text-xs font-bold tracking-wide uppercase text-green-600 flex items-center gap-2">
+                <Sprout className="h-4 w-4" />
+                Digital Farm Twin
               </p>
-              <h2 className="text-3xl font-serif text-[#14532D]">
+              <h2 className="text-3xl font-serif text-green-900 font-bold">
                 Your fields are synced and healthy
               </h2>
-              <p className="text-sm text-[#4B5563] max-w-2xl">
-                Monitor crop layout, soil health, and daily tasks in one glance.
-                Use edit mode to rearrange blocks or log new activities directly
-                from the map.
+              <p className="text-sm text-gray-700 max-w-2xl leading-relaxed">
+                Monitor crop layout, soil health, and daily tasks. Powered by <span className="font-bold text-green-700">AgriVoice</span> AI insights.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-white">
+              <Button className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105">
                 Export Snapshot
               </Button>
               <Button
                 variant="secondary"
-                className="border-[#FFD447] text-[#8A6A00] bg-white hover:bg-[#FFF4C2]"
+                className="border-2 border-amber-400 text-amber-700 bg-white hover:bg-amber-50 shadow-md hover:shadow-lg transition-all"
               >
                 Share Access
               </Button>
@@ -232,242 +289,390 @@ export default function FarmTwinPage() {
         </section>
 
         {/* Farm Map Visualization */}
-        <div className="relative aspect-[16/9] w-full rounded-3xl overflow-hidden border border-[#B4F0C3] shadow-[0_20px_60px_rgba(15,118,110,0.12)] bg-linear-to-br from-[#E6FFF0] via-white to-[#FFEFBF] flex items-center justify-center">
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#16A34A_0.5px,transparent_0.5px)] [background-size:20px_20px]"></div>
+        <div className="relative w-full rounded-3xl border-2 border-green-300 shadow-2xl shadow-green-500/20 bg-gradient-to-br from-[#2D5016] via-[#3A6B1F] to-[#2D5016]">
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+          
+          {/* Legend */}
           <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-20">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#14532D] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#22C55E]" /> Healthy
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-green-900 shadow-lg border border-green-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-600" /> Crops
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#854D0E] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#FACC15]" /> Watch list
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-amber-900 shadow-lg border border-amber-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-700" /> Buildings
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#1D4ED8] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#60A5FA]" /> Irrigation
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-blue-900 shadow-lg border border-blue-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Infrastructure
             </span>
           </div>
 
-          <div
-            className={`relative z-10 grid gap-4 w-3/4 ${
-              farmBlocks.length <= 2
-                ? "grid-cols-2"
-                : farmBlocks.length <= 4
-                ? "grid-cols-2"
-                : "grid-cols-3"
-            }`}
-          >
-            {farmBlocks.map((block) => {
-              const colors = getColorClasses(block.color);
-              return (
-                <div
-                  key={block.id}
-                  className={`${colors.bgClass} border-2 ${colors.borderClass} rounded-lg p-2 flex flex-col items-center justify-center aspect-square relative group`}
-                >
-                  {isEditingLayout && (
-                    <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center gap-2 z-10">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            className="h-8 w-8"
-                            onClick={() => setEditingBlock({ ...block })}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit {block.blockName}</DialogTitle>
-                          </DialogHeader>
-                          {editingBlock && (
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <Label>Block Name</Label>
-                                <Input
-                                  value={editingBlock.blockName}
-                                  onChange={(e) =>
-                                    setEditingBlock({
-                                      ...editingBlock,
-                                      blockName: e.target.value,
-                                    })
-                                  }
-                                  placeholder="e.g. Block A"
-                                />
+          {/* Realistic grid-based farm layout */}
+          <div className="relative z-10 p-8 rounded-3xl overflow-hidden">
+            <div className="grid grid-cols-5 grid-rows-4 gap-2 max-w-4xl mx-auto aspect-[5/4]">
+              {farmBlocks.map((block) => {
+                const colors = getColorClasses(block.color);
+                const icon = structureIcons[block.structure];
+                return (
+                  <div
+                    key={block.id}
+                    className={`${colors.bgClass} border-2 ${colors.borderClass} rounded-lg p-3 flex flex-col items-center justify-center relative group transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer backdrop-blur-sm`}
+                    style={{
+                      gridRow: `${block.gridPosition.row} / span ${block.gridPosition.rowSpan}`,
+                      gridColumn: `${block.gridPosition.col} / span ${block.gridPosition.colSpan}`,
+                    }}
+                  >
+                    {/* Pattern overlay based on crop type */}
+                    {block.structure === 'field' && (
+                      <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_8px,currentColor_8px,currentColor_9px)] rounded-lg"></div>
+                    )}
+                    
+                    {/* Edit overlay */}
+                    {isEditingLayout && (
+                      <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="h-9 w-9 shadow-lg"
+                              onClick={() => setEditingBlock({ ...block })}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Edit {block.blockName}</DialogTitle>
+                            </DialogHeader>
+                            {editingBlock && (
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <Label>Block Name</Label>
+                                  <Input
+                                    value={editingBlock.blockName}
+                                    onChange={(e) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        blockName: e.target.value,
+                                      })
+                                    }
+                                    placeholder="e.g. Block A"
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Crop/Structure Name</Label>
+                                  <Input
+                                    value={editingBlock.cropName}
+                                    onChange={(e) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        cropName: e.target.value,
+                                      })
+                                    }
+                                    placeholder="e.g. Maize"
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Structure Type</Label>
+                                  <Select
+                                    value={editingBlock.structure}
+                                    onValueChange={(value: any) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        structure: value,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="field">🌾 Field</SelectItem>
+                                      <SelectItem value="barn">🏚️ Barn</SelectItem>
+                                      <SelectItem value="house">🏠 House</SelectItem>
+                                      <SelectItem value="greenhouse">🏡 Greenhouse</SelectItem>
+                                      <SelectItem value="irrigation">💧 Irrigation</SelectItem>
+                                      <SelectItem value="storage">📦 Storage</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Color Theme</Label>
+                                  <Select
+                                    value={editingBlock.color}
+                                    onValueChange={(value) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        color: value,
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {colorOptions.map((color) => (
+                                        <SelectItem
+                                          key={color.value}
+                                          value={color.value}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <div
+                                              className={`h-4 w-4 rounded-full ${color.bgClass} ${color.borderClass} border-2`}
+                                            />
+                                            {color.label}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Grid Position (Row, Column)</Label>
+                                  <div className="flex gap-2">
+                                    <div className="flex-1">
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        max="4"
+                                        value={editingBlock.gridPosition.row}
+                                        onChange={(e) =>
+                                          setEditingBlock({
+                                            ...editingBlock,
+                                            gridPosition: {
+                                              ...editingBlock.gridPosition,
+                                              row: Number.parseInt(e.target.value) || 1,
+                                            },
+                                          })
+                                        }
+                                        placeholder="Row (1-4)"
+                                      />
+                                    </div>
+                                    <div className="flex-1">
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        max="5"
+                                        value={editingBlock.gridPosition.col}
+                                        onChange={(e) =>
+                                          setEditingBlock({
+                                            ...editingBlock,
+                                            gridPosition: {
+                                              ...editingBlock.gridPosition,
+                                              col: Number.parseInt(e.target.value) || 1,
+                                            },
+                                          })
+                                        }
+                                        placeholder="Col (1-5)"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Grid Size (Rows × Columns)</Label>
+                                  <div className="flex gap-2">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max="4"
+                                      value={editingBlock.gridPosition.rowSpan}
+                                      onChange={(e) =>
+                                        setEditingBlock({
+                                          ...editingBlock,
+                                          gridPosition: {
+                                            ...editingBlock.gridPosition,
+                                            rowSpan: Number.parseInt(e.target.value) || 1,
+                                          },
+                                        })
+                                      }
+                                      placeholder="Rows"
+                                    />
+                                    <span className="flex items-center">×</span>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max="5"
+                                      value={editingBlock.gridPosition.colSpan}
+                                      onChange={(e) =>
+                                        setEditingBlock({
+                                          ...editingBlock,
+                                          gridPosition: {
+                                            ...editingBlock.gridPosition,
+                                            colSpan: Number.parseInt(e.target.value) || 1,
+                                          },
+                                        })
+                                      }
+                                      placeholder="Cols"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Growth Progress (%)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={editingBlock.progress}
+                                    onChange={(e) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        progress:
+                                          Number.parseInt(e.target.value) || 0,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Description</Label>
+                                  <Textarea
+                                    value={editingBlock.description || ''}
+                                    onChange={(e) =>
+                                      setEditingBlock({
+                                        ...editingBlock,
+                                        description: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Add notes about this structure, crops, or conditions..."
+                                    className="min-h-[80px] resize-none"
+                                  />
+                                </div>
                               </div>
-                              <div className="grid gap-2">
-                                <Label>Crop Name</Label>
-                                <Input
-                                  value={editingBlock.cropName}
-                                  onChange={(e) =>
-                                    setEditingBlock({
-                                      ...editingBlock,
-                                      cropName: e.target.value,
-                                    })
-                                  }
-                                  placeholder="e.g. Maize"
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Color</Label>
-                                <Select
-                                  value={editingBlock.color}
-                                  onValueChange={(value) =>
-                                    setEditingBlock({
-                                      ...editingBlock,
-                                      color: value,
-                                    })
-                                  }
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {colorOptions.map((color) => (
-                                      <SelectItem
-                                        key={color.value}
-                                        value={color.value}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <div
-                                            className={`h-3 w-3 rounded-full ${color.bgClass} ${color.borderClass} border`}
-                                          />
-                                          {color.label}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Growth Progress (%)</Label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={editingBlock.progress}
-                                  onChange={(e) =>
-                                    setEditingBlock({
-                                      ...editingBlock,
-                                      progress:
-                                        Number.parseInt(e.target.value) || 0,
-                                    })
-                                  }
-                                />
-                              </div>
-                            </div>
-                          )}
-                          <DialogFooter className="flex gap-2">
-                            <DialogClose asChild>
-                              <Button variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                              <Button onClick={handleUpdateBlock}>
-                                Save Changes
-                              </Button>
-                            </DialogClose>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="h-8 w-8"
-                        onClick={() => handleDeleteBlock(block.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  <Sprout className={`h-6 w-6 ${colors.textClass} mb-1`} />
-                  <span className={`text-xs font-bold ${colors.textClass}`}>
-                    {block.cropName}
-                  </span>
-                  <span className={`text-[10px] ${colors.textClass}/80`}>
-                    {block.blockName}
-                  </span>
-                </div>
-              );
-            })}
-
-            {isEditingLayout && (
-              <Dialog
-                open={addBlockDialogOpen}
-                onOpenChange={setAddBlockDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <button className="border-2 border-dashed border-[#2D5A47]/50 rounded-lg p-2 flex flex-col items-center justify-center aspect-square hover:border-[#2D5A47] hover:bg-[#2D5A47]/10 transition-colors">
-                    <Plus className="h-6 w-6 text-[#2D5A47]/70" />
-                    <span className="text-xs font-medium text-[#2D5A47]/70 mt-1">
-                      Add Block
-                    </span>
-                  </button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Block</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Block Name</Label>
-                      <Input
-                        value={newBlockName}
-                        onChange={(e) => setNewBlockName(e.target.value)}
-                        placeholder="e.g. Block C"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Crop Name</Label>
-                      <Input
-                        value={newCropName}
-                        onChange={(e) => setNewCropName(e.target.value)}
-                        placeholder="e.g. Tomatoes"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Color</Label>
-                      <Select
-                        value={newBlockColor}
-                        onValueChange={setNewBlockColor}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {colorOptions.map((color) => (
-                            <SelectItem key={color.value} value={color.value}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`h-3 w-3 rounded-full ${color.bgClass} ${color.borderClass} border`}
-                                />
-                                {color.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            )}
+                            <DialogFooter className="flex gap-2">
+                              <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                              </DialogClose>
+                              <DialogClose asChild>
+                                <Button onClick={handleUpdateBlock} className="bg-green-600 hover:bg-green-700">
+                                  Save Changes
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-9 w-9 shadow-lg"
+                          onClick={() => handleDeleteBlock(block.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Block content */}
+                    <div className="relative z-5 flex flex-col items-center justify-center gap-1 text-center">
+                      <span className="text-2xl sm:text-3xl drop-shadow-lg">{icon}</span>
+                      <span className={`text-xs sm:text-sm font-bold ${colors.textClass} drop-shadow-sm`}>
+                        {block.cropName}
+                      </span>
+                      <span className={`text-[10px] sm:text-xs ${colors.textClass} opacity-80`}>
+                        {block.blockName}
+                      </span>
+                      {block.structure === 'field' && (
+                        <div className="mt-1 w-full bg-white/30 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-white h-full rounded-full transition-all duration-500"
+                            style={{ width: `${block.progress}%` }}
+                          />
+                        </div>
+                      )}
+                      {block.description && (
+                        <p className={`text-[9px] sm:text-[10px] ${colors.textClass} opacity-70 mt-1 px-2 line-clamp-2`}>
+                          {block.description}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button onClick={handleAddBlock}>Add Block</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
+                );
+              })}
+
+              {/* Add new block button in edit mode */}
+              {isEditingLayout && (
+                <Dialog
+                  open={addBlockDialogOpen}
+                  onOpenChange={setAddBlockDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <button className="border-2 border-dashed border-white/40 rounded-lg p-3 flex flex-col items-center justify-center hover:border-white/70 hover:bg-white/10 transition-all backdrop-blur-sm col-span-1 row-span-1">
+                      <Plus className="h-8 w-8 text-white/70" />
+                      <span className="text-xs font-medium text-white/70 mt-1">
+                        Add Block
+                      </span>
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Block</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Block Name</Label>
+                        <Input
+                          value={newBlockName}
+                          onChange={(e) => setNewBlockName(e.target.value)}
+                          placeholder="e.g. Block C"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Crop/Structure Name</Label>
+                        <Input
+                          value={newCropName}
+                          onChange={(e) => setNewCropName(e.target.value)}
+                          placeholder="e.g. Tomatoes"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Color Theme</Label>
+                        <Select
+                          value={newBlockColor}
+                          onValueChange={setNewBlockColor}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {colorOptions.map((color) => (
+                              <SelectItem key={color.value} value={color.value}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`h-4 w-4 rounded-full ${color.bgClass} ${color.borderClass} border-2`}
+                                  />
+                                  {color.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleAddBlock} className="bg-green-600 hover:bg-green-700">Add Block</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
 
           <Button
             size="sm"
             variant={isEditingLayout ? "default" : "secondary"}
-            className="absolute bottom-4 right-4 text-xs h-8 gap-1 shadow-sm"
+            className={`absolute bottom-4 right-4 z-30 text-xs h-10 gap-2 shadow-lg transition-all ${
+              isEditingLayout
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-white/95 backdrop-blur-sm border-2 border-green-300 hover:bg-green-50'
+            }`}
             onClick={() => setIsEditingLayout(!isEditingLayout)}
           >
             {isEditingLayout ? (
               <>
-                <Check className="h-3 w-3" /> Done Editing
+                <Check className="h-4 w-4" /> Done Editing
               </>
             ) : (
               <>
-                <Map className="h-3 w-3" /> Edit Layout
+                <Map className="h-4 w-4" /> Edit Layout
               </>
             )}
           </Button>

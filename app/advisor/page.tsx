@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Mic, Send, Volume2, VolumeX, Globe, Loader2, Camera, X, ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { speakText, startSpeechRecognition } from "@/lib/speech"
@@ -209,7 +209,9 @@ export default function AdvisorPage() {
         setMessages((prev) => [...prev, analysisMsg])
 
         // Prepare context for AI
-        imageAnalysisData = `Plant Type: ${analysis.plantType || "Unknown"}, Condition: ${analysis.condition || "Unknown"}, Severity: ${analysis.severity || "Unknown"}, Symptoms: ${analysis.symptoms?.join(", ") || "None detected"}, Image Description: ${rawVision.caption}`
+        if (analysis && rawVision) {
+          imageAnalysisData = `Plant Type: ${analysis.plantType || "Unknown"}, Condition: ${analysis.condition || "Unknown"}, Severity: ${analysis.severity || "Unknown"}, Symptoms: ${analysis.symptoms?.join(", ") || "None detected"}, Image Description: ${rawVision.caption}`
+        }
       } else {
         toast.error("Could not analyze the image. Please try again.")
       }
@@ -343,25 +345,25 @@ export default function AdvisorPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <Header title="Farm Advisor" />
+    <div className="flex flex-col h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8]">
+      <Header title="AgriVoice" />
 
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-green-200/50 bg-white/80 backdrop-blur-sm shadow-sm">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-              <Globe className="h-4 w-4" />
-              {currentLang.flag} {currentLang.name}
+            <Button variant="outline" size="sm" className="gap-2 bg-white border-green-300 hover:bg-green-50 hover:border-green-400 transition-all">
+              <Globe className="h-4 w-4 text-green-600" />
+              <span className="font-medium">{currentLang.flag} {currentLang.name}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="w-48">
             {LANGUAGES.map((lang) => (
               <DropdownMenuItem
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className={language === lang.code ? "bg-secondary" : ""}
+                className={language === lang.code ? "bg-green-50 font-medium" : ""}
               >
-                {lang.flag} {lang.name}
+                <span className="text-lg mr-2">{lang.flag}</span> {lang.name}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -370,111 +372,123 @@ export default function AdvisorPage() {
         <Button
           variant={autoSpeak ? "default" : "outline"}
           size="sm"
-          className="gap-2"
+          className={`gap-2 transition-all ${autoSpeak ? 'bg-green-600 hover:bg-green-700 shadow-md' : 'border-green-300 hover:bg-green-50'}`}
           onClick={() => setAutoSpeak(!autoSpeak)}
         >
           {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          Auto-speak
+          <span className="hidden sm:inline">Auto-speak</span>
         </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-40">
         {/* Date Divider */}
-        <div className="flex justify-center">
-          <span className="text-xs font-medium text-muted-foreground bg-secondary px-3 py-1 rounded-full">Today</span>
+        <div className="flex justify-center animate-in fade-in slide-in-from-top-2 duration-500">
+          <span className="text-xs font-semibold text-green-700 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-green-200">
+            Today • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
         </div>
 
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+        {messages.map((msg, index) => (
+          <div 
+            key={msg.id} 
+            className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""} animate-in fade-in slide-in-from-bottom-3 duration-500`}
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
             <div
-              className={`h-8 w-8 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${
-                msg.role === "ai" ? "bg-primary" : "bg-[#E5B045]"
+              className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-lg ${
+                msg.role === "ai" 
+                  ? "bg-gradient-to-br from-green-500 to-green-600 ring-2 ring-green-200" 
+                  : "bg-gradient-to-br from-amber-500 to-amber-600 ring-2 ring-amber-200"
               }`}
             >
-              {msg.role === "ai" ? "AI" : "Me"}
+              {msg.role === "ai" ? "🌾" : "👤"}
             </div>
             <div className={`space-y-2 max-w-[85%] ${msg.role === "user" ? "flex flex-col items-end" : ""}`}>
               <Card
-                className={`border-none p-4 shadow-sm ${
+                className={`border-none shadow-lg transition-all hover:shadow-xl ${
                   msg.role === "ai"
-                    ? "bg-white rounded-tl-none dark:bg-card"
-                    : "bg-primary text-primary-foreground rounded-tr-none"
+                    ? "bg-white rounded-tl-none"
+                    : "bg-gradient-to-br from-green-600 to-green-700 text-white rounded-tr-none shadow-green-500/30"
                 }`}
               >
-                {msg.image && (
-                  <div className="mb-3 rounded-lg overflow-hidden">
-                    <Image
-                      src={msg.image || "/placeholder.svg"}
-                      alt="Uploaded crop"
-                      width={200}
-                      height={150}
-                      className="w-full max-w-[200px] h-auto object-cover rounded-lg"
-                    />
-                  </div>
-                )}
+                <CardContent className="p-4">
+                  {msg.image && (
+                    <div className="mb-3 rounded-xl overflow-hidden shadow-md">
+                      <Image
+                        src={msg.image || "/placeholder.svg"}
+                        alt="Uploaded crop"
+                        width={250}
+                        height={200}
+                        className="w-full max-w-[250px] h-auto object-cover"
+                      />
+                    </div>
+                  )}
 
-                <p className="text-sm leading-relaxed">{msg.text}</p>
+                  <p className="text-sm leading-relaxed">{msg.text}</p>
 
-                {msg.analysis && (
-                  <div className="mt-3 p-3 bg-secondary/50 rounded-lg space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-muted-foreground">Plant:</span>
-                      <span className="text-xs font-semibold">{msg.analysis.plantType || "Unknown"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-muted-foreground">Condition:</span>
-                      <span className="text-xs font-semibold">{msg.analysis.condition || "Unknown"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Severity:</span>
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getSeverityColor(msg.analysis.severity)}`}
-                      >
-                        {msg.analysis.severity || "Unknown"}
-                      </span>
-                    </div>
-                    {msg.analysis.symptoms && msg.analysis.symptoms.length > 0 && (
-                      <div className="pt-1">
-                        <span className="text-xs font-medium text-muted-foreground">Symptoms:</span>
-                        <ul className="mt-1 space-y-0.5">
-                          {msg.analysis.symptoms.map((symptom, idx) => (
-                            <li key={idx} className="text-xs flex items-start gap-1">
-                              <span className="text-primary">•</span>
-                              {symptom}
-                            </li>
-                          ))}
-                        </ul>
+                  {msg.analysis && (
+                    <div className="mt-4 p-4 bg-green-50/50 backdrop-blur-sm rounded-xl space-y-3 border border-green-200">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-green-700">🌱 Plant:</span>
+                        <span className="text-xs font-bold text-green-900 bg-green-100 px-2 py-1 rounded-full">
+                          {msg.analysis.plantType || "Unknown"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-green-700">📊 Condition:</span>
+                        <span className="text-xs font-semibold text-green-900">{msg.analysis.condition || "Unknown"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-green-700">⚠️ Severity:</span>
+                        <span
+                          className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm ${getSeverityColor(msg.analysis.severity)}`}
+                        >
+                          {msg.analysis.severity || "Unknown"}
+                        </span>
+                      </div>
+                      {msg.analysis.symptoms && msg.analysis.symptoms.length > 0 && (
+                        <div className="pt-2 border-t border-green-200">
+                          <span className="text-xs font-semibold text-green-700 block mb-2">🔍 Symptoms:</span>
+                          <ul className="space-y-1.5">
+                            {msg.analysis.symptoms.map((symptom, idx) => (
+                              <li key={idx} className="text-xs flex items-start gap-2 text-green-900">
+                                <span className="text-green-600 font-bold">•</span>
+                                <span className="flex-1">{symptom}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {msg.actions && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    {msg.actions.map((action) => (
-                      <Button
-                        key={action}
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 text-xs rounded-full"
-                        onClick={() => handleActionClick(action)}
-                      >
-                        {action === "Scan plant for disease" && <Camera className="h-3 w-3 mr-1" />}
-                        {action}
-                      </Button>
-                    ))}
-                  </div>
-                )}
+                  {msg.actions && (
+                    <div className="mt-4 flex gap-2 flex-wrap">
+                      {msg.actions.map((action) => (
+                        <Button
+                          key={action}
+                          size="sm"
+                          variant="secondary"
+                          className="h-9 text-xs rounded-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-300 shadow-sm hover:shadow-md transition-all"
+                          onClick={() => handleActionClick(action)}
+                        >
+                          {action === "Scan plant for disease" && <Camera className="h-3 w-3 mr-1.5" />}
+                          {action}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
               </Card>
               {msg.role === "ai" && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-muted-foreground"
+                  className="h-8 px-3 text-green-700 hover:text-green-800 hover:bg-green-50 rounded-full"
                   onClick={() => handleSpeak(msg.text)}
                 >
-                  <Volume2 className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Listen</span>
+                  <Volume2 className="h-3.5 w-3.5 mr-1.5" />
+                  <span className="text-xs font-medium">Listen</span>
                 </Button>
               )}
             </div>
@@ -482,19 +496,21 @@ export default function AdvisorPage() {
         ))}
 
         {(isLoading || isAnalyzing) && (
-          <div className="flex gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0">
-              AI
+          <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold shrink-0 shadow-lg ring-2 ring-green-200">
+              🌾
             </div>
-            <Card className="rounded-tl-none border-none bg-white p-4 shadow-sm dark:bg-card">
-              <div className="flex items-center gap-2">
-                {isAnalyzing && <span className="text-xs text-muted-foreground">Analyzing image...</span>}
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"></span>
+            <Card className="rounded-tl-none border-none bg-white shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  {isAnalyzing && <span className="text-xs font-medium text-green-700">Analyzing image...</span>}
+                  <div className="flex gap-1.5">
+                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce"></span>
+                  </div>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
         )}
@@ -503,17 +519,17 @@ export default function AdvisorPage() {
       </div>
 
       {imagePreview && (
-        <div className="fixed bottom-32 left-0 right-0 px-4 z-10">
-          <div className="max-w-md mx-auto bg-card border border-border rounded-lg p-2 flex items-center gap-2">
-            <div className="relative h-16 w-16 rounded overflow-hidden shrink-0">
+        <div className="fixed bottom-36 left-0 right-0 px-4 z-10 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="max-w-md mx-auto bg-white border-2 border-green-300 rounded-2xl p-3 flex items-center gap-3 shadow-2xl shadow-green-500/30">
+            <div className="relative h-20 w-20 rounded-xl overflow-hidden shrink-0 ring-2 ring-green-400">
               <Image src={imagePreview || "/placeholder.svg"} alt="Selected" fill className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{selectedImage?.name}</p>
-              <p className="text-xs text-muted-foreground">Ready to analyze</p>
+              <p className="text-sm font-semibold truncate text-green-900">{selectedImage?.name}</p>
+              <p className="text-xs text-green-700 font-medium">Ready to analyze • Tap send</p>
             </div>
-            <Button size="icon" variant="ghost" className="shrink-0" onClick={clearImage}>
-              <X className="h-4 w-4" />
+            <Button size="icon" variant="ghost" className="shrink-0 hover:bg-red-50 hover:text-red-600 rounded-full" onClick={clearImage}>
+              <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -521,7 +537,7 @@ export default function AdvisorPage() {
 
       {/* Input Area */}
       <div
-        className={`fixed ${imagePreview ? "bottom-16" : "bottom-16"} left-0 right-0 p-4 bg-background border-t border-border z-10`}
+        className={`fixed ${imagePreview ? "bottom-16" : "bottom-16"} left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent backdrop-blur-sm border-t border-green-200/50 z-10`}
       >
         {/* Hidden file input */}
         <input
@@ -533,32 +549,40 @@ export default function AdvisorPage() {
           onChange={handleImageSelect}
         />
 
-        <div className="relative flex items-center gap-2 max-w-md mx-auto">
+        <div className="relative flex items-center gap-2.5 max-w-2xl mx-auto">
           <Button
             size="icon"
-            variant={isRecording ? "destructive" : "secondary"}
-            className="shrink-0 h-12 w-12 rounded-full transition-colors"
+            variant={isRecording ? "destructive" : "outline"}
+            className={`shrink-0 h-13 w-13 rounded-full transition-all shadow-lg ${
+              isRecording 
+                ? 'animate-pulse shadow-red-500/50 bg-gradient-to-br from-red-500 to-red-600' 
+                : 'bg-white border-2 border-green-300 hover:border-green-500 hover:bg-green-50 hover:scale-110'
+            }`}
             onClick={toggleRecording}
             disabled={isLoading || isAnalyzing}
           >
-            {isRecording ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+            {isRecording ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mic className="h-6 w-6 text-green-600" />}
           </Button>
 
           <Button
             size="icon"
-            variant="secondary"
-            className="shrink-0 h-12 w-12 rounded-full"
+            variant="outline"
+            className={`shrink-0 h-13 w-13 rounded-full bg-white border-2 transition-all shadow-lg hover:scale-110 ${
+              selectedImage 
+                ? 'border-green-500 bg-green-50' 
+                : 'border-green-300 hover:border-green-500 hover:bg-green-50'
+            }`}
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading || isAnalyzing}
           >
-            {selectedImage ? <ImageIcon className="h-5 w-5 text-primary" /> : <Camera className="h-5 w-5" />}
+            {selectedImage ? <ImageIcon className="h-6 w-6 text-green-600" /> : <Camera className="h-6 w-6 text-green-600" />}
           </Button>
 
           <div className="flex-1 relative">
             <input
               type="text"
-              placeholder={selectedImage ? "Describe your concern..." : "Ask a question..."}
-              className="w-full h-12 pl-4 pr-10 rounded-full border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder={selectedImage ? "Describe your concern..." : "Ask me anything about farming..."}
+              className="w-full h-13 pl-5 pr-4 rounded-full border-2 border-green-300 bg-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 shadow-lg transition-all placeholder:text-green-600/50"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !isLoading && !isAnalyzing && handleSend()}
@@ -567,11 +591,15 @@ export default function AdvisorPage() {
           </div>
           <Button
             size="icon"
-            className="shrink-0 h-12 w-12 rounded-full"
+            className={`shrink-0 h-13 w-13 rounded-full shadow-lg transition-all ${
+              (!inputValue.trim() && !selectedImage) || isLoading || isAnalyzing
+                ? 'bg-gray-300'
+                : 'bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:scale-110 hover:shadow-xl hover:shadow-green-500/50'
+            }`}
             onClick={handleSend}
             disabled={(!inputValue.trim() && !selectedImage) || isLoading || isAnalyzing}
           >
-            {isLoading || isAnalyzing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            {isLoading || isAnalyzing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
       </div>

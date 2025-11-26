@@ -31,5 +31,7 @@ export default function RootLayout({
 }
 
 export const metadata = {
-      generator: 'v0.app'
-    };
+  title: 'AgriVoice - AI Smart Farming Assistant',
+  description: 'Your multilingual AI farming advisor powered by Azure AI',
+  generator: 'v0.app'
+};

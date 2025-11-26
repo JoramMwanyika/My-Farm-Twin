@@ -89,32 +89,32 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8] pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8] pb-24">
       <Header />
 
       <main className="container px-4 py-6 space-y-8 max-w-7xl mx-auto">
         {/* Hero */}
-        <section className="rounded-3xl bg-linear-to-br from-[#E6FFEA] via-white to-[#FFF9DB] border border-[#B4F0C3]/50 p-8 space-y-8 shadow-lg shadow-green-100/50 backdrop-blur-sm">
+        <section className="rounded-3xl bg-gradient-to-br from-[#E6FFEA] via-white to-[#FFF9DB] border-2 border-green-200/50 p-8 space-y-8 shadow-2xl shadow-green-100/50 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Badge
                 variant="outline"
-                className="w-fit border-[#34C759] text-[#1B5E20] bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow"
+                className="w-fit border-2 border-green-500 text-green-700 bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:scale-105 px-3 py-1.5"
               >
-                <Clock className="h-3 w-3 mr-1.5" />
-                Tuesday • Nairobi, KE
+                <Clock className="h-3.5 w-3.5 mr-2" />
+                <span className="font-semibold">Tuesday • Nairobi, KE</span>
               </Badge>
-              <h2 className="text-4xl lg:text-5xl font-serif text-foreground font-bold tracking-tight">
-                Jambo, Samuel
+              <h2 className="text-4xl lg:text-5xl font-serif text-green-900 font-bold tracking-tight">
+                Jambo, Samuel 👋
               </h2>
               <p className="text-muted-foreground max-w-xl text-base leading-relaxed">
-                Your digital farm twin synced overnight. See where attention
-                matters most and jump straight into your next best actions.
+                Welcome to <span className="font-bold text-green-700">AgriVoice</span>, your AI-powered farming companion. 
+                Your digital farm twin synced overnight. See where attention matters most.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button
-                className="bg-[#1FAA59] hover:bg-[#18934B] text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105"
                 size="lg"
               >
                 Open Farm Timeline
@@ -122,7 +122,7 @@ export default function Dashboard() {
               </Button>
               <Button
                 variant="secondary"
-                className="border-[#FFD447] bg-white text-[#8A6A00] hover:bg-[#FFF3C4] shadow-sm hover:shadow-md transition-all duration-200"
+                className="border-2 border-amber-400 bg-white text-amber-700 hover:bg-amber-50 shadow-md hover:shadow-lg transition-all duration-300"
                 size="lg"
               >
                 Share Summary
@@ -133,19 +133,20 @@ export default function Dashboard() {
             {quickStats.map((stat, index) => (
               <Card
                 key={stat.label}
-                className="border border-transparent bg-white/90 backdrop-blur-sm shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group cursor-pointer"
+                className="border-none bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group cursor-pointer animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-wide text-[#6B7280] font-medium">
+                    <p className="text-xs uppercase tracking-wide text-gray-600 font-semibold">
                       {stat.label}
                     </p>
-                    <TrendingUp className="h-4 w-4 text-[#1FAA59] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <TrendingUp className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <p className="text-4xl font-serif text-[#1FAA59] font-bold">
+                  <p className="text-4xl font-serif text-green-600 font-bold">
                     {stat.value}
                   </p>
-                  <p className="text-xs text-[#94A3B8] leading-relaxed">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     {stat.helper}
                   </p>
                 </CardContent>
