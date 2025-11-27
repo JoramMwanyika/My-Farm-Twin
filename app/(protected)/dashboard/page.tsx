@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { BottomNav } from "@/components/bottom-nav";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   CloudRain,
   Droplets,
@@ -16,23 +15,26 @@ import {
   Wind,
   Sun,
   Thermometer,
-  Leaf,
-  TrendingUp,
   Clock,
-  CheckCircle2,
   MapPin,
   Loader2,
+  MessageSquare,
+  Calendar as CalendarIcon,
+  Users,
+  Mic,
+  Activity,
+  TrendingUp,
+  CheckCircle,
 } from "lucide-react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -40,9 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import Link from "next/link";
 
 interface WeatherData {
   main: {
@@ -70,13 +70,14 @@ interface WeatherData {
 }
 
 export default function Dashboard() {
-  const [isCheckCropsOpen, setIsCheckCropsOpen] = useState(false);
-  const [isLogWaterOpen, setIsLogWaterOpen] = useState(false);
-  const [waterAmount, setWaterAmount] = useState([20]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationName, setLocationName] = useState("Nairobi");
+  const [teamTasks, setTeamTasks] = useState<any[]>([]);
+  const [calendarActivities, setCalendarActivities] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [farmBlocks, setFarmBlocks] = useState<any[]>([]);
 
   // Get user's location and fetch weather
   useEffect(() => {
@@ -91,7 +92,6 @@ export default function Dashboard() {
             },
             async (error) => {
               console.log("Location permission denied, using default location");
-              // Fallback to default location (Nairobi)
               await fetchWeather();
             }
           );
@@ -105,7 +105,50 @@ export default function Dashboard() {
     };
 
     getLocationAndWeather();
+    loadTeamData();
+    loadCalendarData();
+    loadFarmBlocks();
   }, []);
+
+  const loadTeamData = () => {
+    const tasksData = localStorage.getItem("farmTeamTasks");
+    const logsData = localStorage.getItem("farmActivityLogs");
+    
+    if (tasksData) {
+      setTeamTasks(JSON.parse(tasksData));
+    }
+    
+    if (logsData) {
+      const logs = JSON.parse(logsData);
+      setRecentActivity(logs.slice(0, 5));
+    }
+  };
+
+  const loadCalendarData = () => {
+    const saved = localStorage.getItem("cropActivities");
+    if (saved) {
+      const activities = JSON.parse(saved);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const upcoming = activities
+        .filter((a: any) => new Date(a.date) >= today)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 3);
+      
+      setCalendarActivities(upcoming);
+    }
+  };
+
+  const loadFarmBlocks = () => {
+    // Load from localStorage or use demo data
+    const demoBlocks = [
+      { id: 1, name: "Block A - Maize", healthStatus: "healthy", progress: 60 },
+      { id: 2, name: "Block B - Beans", healthStatus: "warning", progress: 85 },
+      { id: 3, name: "Greenhouse - Tomatoes", healthStatus: "healthy", progress: 45 },
+    ];
+    setFarmBlocks(demoBlocks);
+  };
 
   const fetchWeather = async (lat?: number, lon?: number) => {
     setIsLoadingWeather(true);
@@ -156,44 +199,23 @@ export default function Dashboard() {
   };
 
   const quickStats = [
-    { label: "Active Fields", value: "04", helper: "+1.2% vs last week" },
-    { label: "Open Tasks", value: "06", helper: "2 overdue" },
-    { label: "Moisture Avg", value: "42%", helper: "Ideal range" },
-    { label: "AI Insights", value: "3 new", helper: "Review required" },
+    { label: "Active Fields", value: "04", helper: "+1.2% vs last week", icon: Sprout },
+    { label: "Team Tasks", value: teamTasks.filter((t: any) => t.status === 'pending').length.toString().padStart(2, '0'), helper: `${teamTasks.filter((t: any) => t.status === 'in-progress').length} in progress`, icon: Users },
+    { label: "Next Activity", value: calendarActivities.length > 0 ? new Date(calendarActivities[0]?.date).getDate().toString().padStart(2, '0') : "--", helper: calendarActivities[0]?.activityType || "No upcoming", icon: CalendarIcon },
+    { label: "Healthy Blocks", value: `${Math.round((farmBlocks.filter((b: any) => b.healthStatus === 'healthy').length / farmBlocks.length) * 100)}%`, helper: "AI status check", icon: Activity },
   ];
 
-  const upcomingTasks = [
-    { time: "09:30", title: "Inspect Block A", detail: "Check pest traps" },
-    { time: "12:15", title: "Irrigate Block C", detail: "18L / sq m" },
-    { time: "16:00", title: "Soil sample", detail: "Send to lab" },
-  ];
-
-  const fieldInsights = [
-    {
-      title: "Beans • Block B",
-      status: "Humidity spike detected",
-      trend: "12% above norm",
-    },
-    {
-      title: "Maize • Block A",
-      status: "Nutrient drop",
-      trend: "Nitrogen low",
-    },
-    { title: "Spinach • Tunnel", status: "Ready for harvest", trend: "Day 48" },
-  ];
-
-  const handleLogWater = () => {
-    setIsLogWaterOpen(false);
-    toast.success("Irrigation logged", {
-      description: `Recorded ${waterAmount[0]} liters for Block A`,
-    });
-  };
-
-  const handleUpdateCrop = () => {
-    setIsCheckCropsOpen(false);
-    toast.success("Crop status updated", {
-      description: "Maize growth stage updated to Vegetative",
-    });
+  const getHealthStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy':
+        return 'bg-green-100 text-green-700 border-green-300';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'critical':
+        return 'bg-red-100 text-red-700 border-red-300';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
   };
 
   return (
@@ -221,27 +243,21 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/farm">
+              <Link href="/advisor">
                 <Button
                   className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105"
                   size="lg"
                 >
-                  Open Farm Timeline
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <Mic className="mr-2 h-5 w-5" />
+                  Ask AgriVoice
                 </Button>
               </Link>
-              <Button
-                variant="secondary"
-                className="border-2 border-amber-400 bg-white text-amber-700 hover:bg-amber-50 shadow-md hover:shadow-lg transition-all duration-300"
-                size="lg"
-                onClick={() => toast.info("Export feature coming soon!")}
-              >
-                Share Summary
-              </Button>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickStats.map((stat, index) => (
+            {quickStats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
               <Card
                 key={stat.label}
                 className="border-none bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group cursor-pointer animate-in fade-in slide-in-from-bottom-4"
@@ -252,7 +268,7 @@ export default function Dashboard() {
                     <p className="text-xs uppercase tracking-wide text-gray-600 font-semibold">
                       {stat.label}
                     </p>
-                    <TrendingUp className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Icon className="h-4 w-4 text-green-600" />
                   </div>
                   <p className="text-4xl font-serif text-green-600 font-bold">
                     {stat.value}
@@ -262,7 +278,8 @@ export default function Dashboard() {
                   </p>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -425,267 +442,246 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Operations board */}
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-          <Card className="border-[#B4F0C3] shadow-lg shadow-green-100/50 bg-white/95 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-0">
-              <div className="flex flex-wrap items-center justify-between gap-4 p-6 border-b border-[#ECFDF5]">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-[#6B7280] font-medium">
-                    Operations board
-                  </p>
-                  <h3 className="text-2xl font-serif text-[#1B4332] font-bold">
-                    Today&apos;s focus
-                  </h3>
+        {/* Quick Links & Features */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <Link href="/team" className="group">
+            <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-blue-700 group-hover:text-blue-800">
+                  <Users className="h-6 w-6" />
+                  <span>Team Collaboration</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">Manage tasks, assign work, and track team progress</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">{teamTasks.filter((t: any) => t.status === 'pending').length} pending tasks</span>
+                  <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
                 </div>
-                <div className="flex gap-2">
-                  <Dialog
-                    open={isCheckCropsOpen}
-                    onOpenChange={setIsCheckCropsOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-[#1FAA59] text-[#1FAA59] hover:bg-[#E6FFEA] hover:border-[#18934B] transition-all duration-200"
-                      >
-                        <Sprout className="mr-2 h-4 w-4" />
-                        Update crops
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Update Crop Status</DialogTitle>
-                        <DialogDescription>
-                          Record the current progress of your crops.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="crop">Select Crop</Label>
-                          <Select defaultValue="maize">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select crop" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="maize">
-                                Maize (Block A)
-                              </SelectItem>
-                              <SelectItem value="beans">
-                                Beans (Block B)
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="stage">Growth Stage</Label>
-                          <Select defaultValue="vegetative">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select stage" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="germination">
-                                Germination
-                              </SelectItem>
-                              <SelectItem value="vegetative">
-                                Vegetative
-                              </SelectItem>
-                              <SelectItem value="flowering">
-                                Flowering
-                              </SelectItem>
-                              <SelectItem value="maturity">Maturity</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleUpdateCrop}>Save Update</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <Dialog
-                    open={isLogWaterOpen}
-                    onOpenChange={setIsLogWaterOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        className="bg-[#1FAA59] text-white hover:bg-[#18934B] shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-                      >
-                        <Droplets className="mr-2 h-4 w-4" />
-                        Log water
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Log Irrigation</DialogTitle>
-                        <DialogDescription>
-                          How much water did you apply today?
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="amount">Amount (Liters)</Label>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              value={waterAmount}
-                              onValueChange={setWaterAmount}
-                              max={100}
-                              step={5}
-                              className="flex-1"
-                            />
-                            <span className="w-12 text-right font-mono font-bold">
-                              {waterAmount[0]}L
-                            </span>
-                          </div>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="method">Method</Label>
-                          <Select defaultValue="drip">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select method" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="drip">
-                                Drip Irrigation
-                              </SelectItem>
-                              <SelectItem value="sprinkler">
-                                Sprinkler
-                              </SelectItem>
-                              <SelectItem value="manual">
-                                Manual / Can
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleLogWater}>Log Activity</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/calendar" className="group">
+            <Card className="border-2 border-purple-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-purple-700 group-hover:text-purple-800">
+                  <CalendarIcon className="h-6 w-6" />
+                  <span>Crop Calendar</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">Track planting schedules and get AI reminders</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">{calendarActivities.length} upcoming activities</span>
+                  <ArrowRight className="h-4 w-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-              <Separator />
+          <Link href="/advisor" className="group">
+            <Card className="border-2 border-green-200 hover:border-green-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full bg-gradient-to-br from-green-50 to-white">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-green-700 group-hover:text-green-800">
+                  <MessageSquare className="h-6 w-6" />
+                  <span>Ask AgriVoice AI</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">Get instant farming advice via voice or text</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                    <Mic className="h-3 w-3 mr-1" />
+                    Voice Ready
+                  </Badge>
+                  <ArrowRight className="h-4 w-4 text-green-600 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </section>
 
-              <div className="divide-y divide-[#ECFDF5]">
-                {upcomingTasks.map((task, index) => (
-                  <div
-                    key={task.title}
-                    className="flex items-center justify-between px-6 py-5 gap-4 hover:bg-[#F7FFF3] transition-colors duration-200 group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-[#E6FFEA] text-[#1FAA59] font-mono text-sm font-semibold group-hover:bg-[#1FAA59] group-hover:text-white transition-all duration-200">
-                        {task.time}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[#0F172A] text-base">
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-[#708090] mt-0.5">
-                          {task.detail}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-[#1FAA59] hover:bg-[#E9FCEB] hover:text-[#18934B] transition-all duration-200"
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                      Mark done
+        {/* Today's Highlights & Activity */}
+        <section className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+          {/* Calendar Preview & Team Activity */}
+          <div className="space-y-6">
+            {/* Calendar Preview */}
+            <Card className="border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5 text-purple-600" />
+                    Upcoming Activities
+                  </CardTitle>
+                  <Link href="/calendar">
+                    <Button size="sm" variant="ghost" className="text-purple-600 hover:text-purple-700">
+                      View All
+                      <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-[#FFD447] bg-linear-to-br from-white to-[#FFF9DB]/30 shadow-lg shadow-yellow-100/50 hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-[#B7791F] font-medium">
-                    Soil health
-                  </p>
-                  <h3 className="text-xl font-serif text-[#332600] font-bold">
-                    Moisture &amp; nutrients
-                  </h3>
+                  </Link>
                 </div>
-                <Link
-                  href="/farm"
-                  className="text-sm font-medium text-[#C2410C] hover:text-[#D97706] hover:underline transition-colors flex items-center gap-1"
-                >
-                  View report
-                  <ArrowRight className="h-3 w-3" />
+              </CardHeader>
+              <CardContent>
+                {calendarActivities.length > 0 ? (
+                  <div className="space-y-3">
+                    {calendarActivities.map((activity: any, index: number) => (
+                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-100 hover:bg-purple-100 transition-colors">
+                        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-white text-purple-700 font-semibold border border-purple-200">
+                          <span className="text-xs">{new Date(activity.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                          <span className="text-lg">{new Date(activity.date).getDate()}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 capitalize">{activity.activityType}</p>
+                          <p className="text-sm text-gray-600">{activity.cropType}</p>
+                        </div>
+                        {activity.reminderEnabled && (
+                          <Badge variant="outline" className="text-xs">
+                            🔔 {activity.reminderType}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No upcoming activities</p>
+                    <Link href="/calendar">
+                      <Button size="sm" variant="link" className="mt-2">
+                        Add Activity
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Team Activity Feed */}
+            <Card className="border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    Recent Team Activity
+                  </CardTitle>
+                  <Link href="/team">
+                    <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-700">
+                      View All
+                      <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {recentActivity.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentActivity.map((log: any, index: number) => (
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          {log.action === 'assigned' && <Users className="h-4 w-4 text-blue-600" />}
+                          {log.action === 'started' && <Clock className="h-4 w-4 text-orange-600" />}
+                          {log.action === 'completed' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-900">
+                            <span className="font-semibold">{log.memberName}</span>{' '}
+                            <span className="text-gray-600">{log.action}</span> a task
+                          </p>
+                          {log.details && (
+                            <p className="text-xs text-gray-500 mt-0.5">{log.details}</p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(log.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No recent activity</p>
+                    <Link href="/team">
+                      <Button size="sm" variant="link" className="mt-2">
+                        Add Team Members
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Farm Blocks Status */}
+          <Card className="border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Sprout className="h-5 w-5 text-green-600" />
+                  Farm Blocks Status
+                </CardTitle>
+                <Link href="/farm">
+                  <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700">
+                    View All
+                    <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
                 </Link>
               </div>
-
-              <div className="grid gap-3">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-serif text-[#18934B] font-bold">
-                    42%
-                  </span>
-                  <span className="text-sm text-[#6B7280] font-medium">
-                    Average moisture
-                  </span>
-                </div>
-                <div className="h-3 rounded-full bg-[#FFF1BF] overflow-hidden shadow-inner">
-                  <div className="h-full bg-linear-to-r from-[#FFD447] to-[#FFB703] w-[68%] rounded-full transition-all duration-500" />
-                </div>
-                <div className="flex justify-between text-xs text-[#9CA3AF] font-medium">
-                  <span>Dry</span>
-                  <span>Optimal</span>
-                  <span>Saturated</span>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 hover:bg-white transition-colors">
-                  <div className="flex items-center gap-3 text-[#6B7280]">
-                    <div className="p-2 rounded-lg bg-[#E6FFEA]">
-                      <Thermometer className="h-4 w-4 text-[#1FAA59]" />
-                    </div>
-                    <span className="font-medium">Soil temperature</span>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {farmBlocks.map((block: any) => (
+                <div key={block.id} className="p-3 rounded-lg border-2 hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">{block.name}</span>
+                    <Badge className={getHealthStatusColor(block.healthStatus)}>
+                      {block.healthStatus}
+                    </Badge>
                   </div>
-                  <span className="font-bold text-[#0F172A]">19.4°C</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 hover:bg-white transition-colors">
-                  <div className="flex items-center gap-3 text-[#6B7280]">
-                    <div className="p-2 rounded-lg bg-[#E6FFEA]">
-                      <Leaf className="h-4 w-4 text-[#1FAA59]" />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
+                        style={{ width: `${block.progress}%` }}
+                      />
                     </div>
-                    <span className="font-medium">Nitrogen levels</span>
+                    <span className="text-xs font-semibold text-gray-600">{block.progress}%</span>
                   </div>
-                  <span className="font-bold text-[#0F172A]">Medium</span>
                 </div>
-              </div>
+              ))}
 
-              <Separator />
-
-              <div className="space-y-4">
-                <p className="text-xs uppercase tracking-wide text-[#6B7280] font-medium">
-                  Field insights
-                </p>
-                <div className="space-y-3">
-                  {fieldInsights.map((insight) => (
-                    <div
-                      key={insight.title}
-                      className="rounded-xl border border-[#FFE08A] bg-white/80 p-4 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer"
-                    >
-                      <p className="text-sm font-semibold text-[#0F172A] mb-1">
-                        {insight.title}
-                      </p>
-                      <p className="text-sm text-[#6B7280] mb-1">
-                        {insight.status}
-                      </p>
-                      <p className="text-xs text-[#D97706] font-medium">
-                        {insight.trend}
-                      </p>
-                    </div>
-                  ))}
+              {farmBlocks.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Sprout className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No farm blocks yet</p>
+                  <Link href="/farm">
+                    <Button size="sm" variant="link" className="mt-2">
+                      Add Blocks
+                    </Button>
+                  </Link>
                 </div>
+              )}
+
+              {/* Today's Highlights - AI Summary */}
+              <div className="mt-6 p-4 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-yellow-200">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-amber-800">
+                  <TrendingUp className="h-4 w-4" />
+                  Today's AI Highlights
+                </h4>
+                <ul className="space-y-2 text-sm text-amber-900">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>2 blocks in optimal health</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <span>Block B needs irrigation attention</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CalendarIcon className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <span>3 activities scheduled this week</span>
+                  </li>
+                </ul>
               </div>
             </CardContent>
           </Card>

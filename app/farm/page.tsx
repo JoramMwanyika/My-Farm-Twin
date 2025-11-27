@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +15,19 @@ import {
   Check,
   Pencil,
   Trash2,
+  Users,
+  Cloud,
+  Mic,
+  Camera,
+  TrendingUp,
+  DollarSign,
+  AlertTriangle,
+  Thermometer,
+  Droplets,
+  Wind,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +62,31 @@ type FarmBlock = {
   };
   structure: 'field' | 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage';
   description?: string;
+  sensorData?: {
+    soilMoisture: number;
+    temperature: number;
+    humidity: number;
+  };
+  financials?: {
+    investment: number;
+    revenue: number;
+    profit: number;
+  };
+  healthStatus?: 'healthy' | 'warning' | 'critical';
+  healthNotes?: string;
+  voiceNotes?: Array<{
+    id: string;
+    timestamp: Date;
+    duration: number;
+    text: string;
+  }>;
+  photos?: Array<{
+    id: string;
+    url: string;
+    timestamp: Date;
+    caption?: string;
+  }>;
+  predictedHarvest?: Date;
 };
 
 const colorOptions = [
@@ -122,6 +158,18 @@ export default function FarmTwinPage() {
       progress: 60,
       gridPosition: { row: 1, col: 1, rowSpan: 2, colSpan: 2 },
       structure: "field",
+      sensorData: {
+        soilMoisture: 42,
+        temperature: 24,
+        humidity: 65,
+      },
+      financials: {
+        investment: 25000,
+        revenue: 45000,
+        profit: 20000,
+      },
+      healthStatus: 'healthy',
+      predictedHarvest: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
     },
     {
       id: 2,
@@ -131,6 +179,19 @@ export default function FarmTwinPage() {
       progress: 85,
       gridPosition: { row: 1, col: 3, rowSpan: 1, colSpan: 2 },
       structure: "field",
+      sensorData: {
+        soilMoisture: 38,
+        temperature: 26,
+        humidity: 60,
+      },
+      financials: {
+        investment: 15000,
+        revenue: 28000,
+        profit: 13000,
+      },
+      healthStatus: 'warning',
+      healthNotes: 'Low soil moisture detected - irrigation recommended',
+      predictedHarvest: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
     },
     {
       id: 3,
@@ -149,6 +210,18 @@ export default function FarmTwinPage() {
       progress: 45,
       gridPosition: { row: 2, col: 3, rowSpan: 2, colSpan: 2 },
       structure: "greenhouse",
+      sensorData: {
+        soilMoisture: 55,
+        temperature: 28,
+        humidity: 75,
+      },
+      financials: {
+        investment: 35000,
+        revenue: 52000,
+        profit: 17000,
+      },
+      healthStatus: 'healthy',
+      predictedHarvest: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
     },
     {
       id: 5,
@@ -167,6 +240,43 @@ export default function FarmTwinPage() {
   const [newCropName, setNewCropName] = useState("");
   const [newBlockColor, setNewBlockColor] = useState("primary");
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
+  const [teamTasks, setTeamTasks] = useState<any[]>([]);
+  const [calendarActivities, setCalendarActivities] = useState<any[]>([]);
+  const [weather, setWeather] = useState<any>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+
+  useEffect(() => {
+    loadTeamTasks();
+    loadCalendarActivities();
+    loadWeather();
+  }, []);
+
+  const loadTeamTasks = () => {
+    const saved = localStorage.getItem("farmTeamTasks");
+    if (saved) {
+      setTeamTasks(JSON.parse(saved));
+    }
+  };
+
+  const loadCalendarActivities = () => {
+    const saved = localStorage.getItem("cropActivities");
+    if (saved) {
+      setCalendarActivities(JSON.parse(saved));
+    }
+  };
+
+  const loadWeather = async () => {
+    try {
+      const response = await fetch(`/api/weather?lat=-1.286389&lon=36.817223`);
+      if (response.ok) {
+        const data = await response.json();
+        setWeather(data);
+      }
+    } catch (error) {
+      console.error("Weather error:", error);
+    }
+  };
 
   const [tasks, setTasks] = useState([
     {
@@ -234,6 +344,88 @@ export default function FarmTwinPage() {
   const handleDeleteBlock = (id: number) => {
     setFarmBlocks(farmBlocks.filter((block) => block.id !== id));
     toast.success("Block removed!");
+  };
+
+  const getBlockTasks = (blockId: number) => {
+    const block = farmBlocks.find((b) => b.id === blockId);
+    if (!block) return [];
+    
+    return teamTasks.filter((task: any) => 
+      task.cropType?.includes(block.cropName) || 
+      task.title?.toLowerCase().includes(block.blockName.toLowerCase())
+    );
+  };
+
+  const getBlockActivities = (blockId: number) => {
+    const block = farmBlocks.find((b) => b.id === blockId);
+    if (!block) return [];
+    
+    return calendarActivities.filter((activity: any) =>
+      activity.cropType?.includes(block.cropName)
+    );
+  };
+
+  const addVoiceNote = async (blockId: number) => {
+    setIsRecordingVoice(true);
+    toast.info("Voice recording started...");
+    
+    // Simulate voice recording (in real app, use speech API)
+    setTimeout(() => {
+      const voiceNote = {
+        id: `voice-${Date.now()}`,
+        timestamp: new Date(),
+        duration: 15,
+        text: "Sample voice note: Observed healthy growth in this block. Plants are responding well to recent fertilization.",
+      };
+
+      setFarmBlocks(farmBlocks.map(block => 
+        block.id === blockId 
+          ? { 
+              ...block, 
+              voiceNotes: [...(block.voiceNotes || []), voiceNote] 
+            }
+          : block
+      ));
+
+      setIsRecordingVoice(false);
+      toast.success("Voice note saved!");
+    }, 2000);
+  };
+
+  const addPhoto = (blockId: number, file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const photo = {
+        id: `photo-${Date.now()}`,
+        url: reader.result as string,
+        timestamp: new Date(),
+      };
+
+      setFarmBlocks(farmBlocks.map(block =>
+        block.id === blockId
+          ? {
+              ...block,
+              photos: [...(block.photos || []), photo]
+            }
+          : block
+      ));
+
+      toast.success("Photo added!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getHealthStatusColor = (status?: string) => {
+    switch (status) {
+      case 'healthy':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'critical':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
   };
 
   return (
@@ -679,12 +871,18 @@ export default function FarmTwinPage() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-[#DCFCE7] p-1 h-auto rounded-2xl">
+          <TabsList className="grid w-full grid-cols-4 bg-[#DCFCE7] p-1 h-auto rounded-2xl">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-white data-[state=active]:shadow-[0_8px_20px_rgba(34,197,94,0.15)] data-[state=active]:text-[#15803D] py-2 text-xs sm:text-sm rounded-xl transition"
             >
               Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="blocks"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-[0_8px_20px_rgba(34,197,94,0.15)] data-[state=active]:text-[#15803D] py-2 text-xs sm:text-sm rounded-xl transition"
+            >
+              Block Details
             </TabsTrigger>
             <TabsTrigger
               value="soil"
@@ -777,6 +975,263 @@ export default function FarmTwinPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Block Details Tab - NEW */}
+          <TabsContent value="blocks" className="space-y-4 mt-4">
+            {farmBlocks.filter(b => b.structure === 'field').length === 0 ? (
+              <Card className="border-dashed border-2">
+                <CardContent className="p-8 text-center text-gray-500">
+                  <Sprout className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>No field blocks yet. Add some using "Edit Layout"</p>
+                </CardContent>
+              </Card>
+            ) : (
+              farmBlocks.filter(b => b.structure === 'field').map((block) => (
+                <Card key={block.id} className="border-2 border-green-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{structureIcons[block.structure]}</span>
+                        <div>
+                          <h3 className="text-lg font-bold">{block.cropName}</h3>
+                          <p className="text-sm text-gray-600">{block.blockName}</p>
+                        </div>
+                      </div>
+                      {block.healthStatus && (
+                        <Badge className={getHealthStatusColor(block.healthStatus)}>
+                          {block.healthStatus === 'healthy' && '✓ Healthy'}
+                          {block.healthStatus === 'warning' && '⚠ Warning'}
+                          {block.healthStatus === 'critical' && '⚠️ Critical'}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* IoT Sensor Data */}
+                    {block.sensorData && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Thermometer className="h-4 w-4" />
+                          Real-Time Sensor Data
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                            <Droplets className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                            <div className="text-xl font-bold text-blue-700">{block.sensorData.soilMoisture}%</div>
+                            <div className="text-xs text-blue-600">Soil Moisture</div>
+                          </div>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                            <Thermometer className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                            <div className="text-xl font-bold text-orange-700">{block.sensorData.temperature}°C</div>
+                            <div className="text-xs text-orange-600">Temperature</div>
+                          </div>
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                            <Wind className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                            <div className="text-xl font-bold text-green-700">{block.sensorData.humidity}%</div>
+                            <div className="text-xs text-green-600">Humidity</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Weather Integration */}
+                    {weather && (
+                      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                          <Cloud className="h-4 w-4" />
+                          Current Weather Conditions
+                        </h4>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-2xl font-bold text-gray-900">{weather.current?.temp || '24'}°C</p>
+                            <p className="text-sm text-gray-600 capitalize">{weather.current?.description || 'Partly cloudy'}</p>
+                          </div>
+                          <div className="text-right text-sm text-gray-600">
+                            <p>Humidity: {weather.current?.humidity || '65'}%</p>
+                            <p>Wind: {weather.current?.windSpeed || '12'} km/h</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Health Alerts */}
+                    {block.healthNotes && (
+                      <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-sm text-yellow-800">Alert</p>
+                            <p className="text-sm text-yellow-700">{block.healthNotes}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Financial Tracking */}
+                    {block.financials && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Financial Summary
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="text-center">
+                            <p className="text-xs text-gray-600 mb-1">Investment</p>
+                            <p className="text-lg font-bold text-red-600">KES {block.financials.investment.toLocaleString()}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-600 mb-1">Revenue</p>
+                            <p className="text-lg font-bold text-blue-600">KES {block.financials.revenue.toLocaleString()}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-600 mb-1">Profit</p>
+                            <p className="text-lg font-bold text-green-600">KES {block.financials.profit.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-center">
+                          <p className="text-xs text-green-700">
+                            ROI: <span className="font-bold">{((block.financials.profit / block.financials.investment) * 100).toFixed(1)}%</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Harvest Prediction */}
+                    {block.predictedHarvest && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-purple-600" />
+                          AI Harvest Prediction
+                        </h4>
+                        <p className="text-sm text-gray-700">
+                          Expected harvest date: <span className="font-bold text-purple-700">
+                            {block.predictedHarvest.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          ({Math.ceil((block.predictedHarvest.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days remaining)
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Team Tasks for this Block */}
+                    {getBlockTasks(block.id).length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Assigned Team Tasks
+                        </h4>
+                        <div className="space-y-2">
+                          {getBlockTasks(block.id).slice(0, 3).map((task: any) => (
+                            <div key={task.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 text-sm">
+                              <Badge variant="outline" className="text-xs">{task.status}</Badge>
+                              <span className="flex-1">{task.title}</span>
+                              <span className="text-xs text-gray-500">{task.assignedTo}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Calendar Activities */}
+                    {getBlockActivities(block.id).length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Upcoming Activities
+                        </h4>
+                        <div className="space-y-2">
+                          {getBlockActivities(block.id).slice(0, 3).map((activity: any) => (
+                            <div key={activity.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 text-sm">
+                              <span>{activity.activityType}</span>
+                              <span className="flex-1">{activity.cropType}</span>
+                              <span className="text-xs text-gray-500">{new Date(activity.date).toLocaleDateString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Voice Notes */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Mic className="h-4 w-4" />
+                          Voice Farm Journal
+                        </h4>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => addVoiceNote(block.id)}
+                          disabled={isRecordingVoice}
+                        >
+                          <Mic className="h-3 w-3 mr-1" />
+                          {isRecordingVoice ? 'Recording...' : 'Add Note'}
+                        </Button>
+                      </div>
+                      {block.voiceNotes && block.voiceNotes.length > 0 ? (
+                        <div className="space-y-2">
+                          {block.voiceNotes.map((note) => (
+                            <div key={note.id} className="bg-gray-50 border border-gray-200 rounded p-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Mic className="h-3 w-3 text-gray-500" />
+                                <span className="text-xs text-gray-500">
+                                  {new Date(note.timestamp).toLocaleString()} • {note.duration}s
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">{note.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No voice notes yet</p>
+                      )}
+                    </div>
+
+                    {/* Photo Gallery */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Camera className="h-4 w-4" />
+                          Progress Photos
+                        </h4>
+                        <Button size="sm" variant="outline" onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e: any) => {
+                            const file = e.target.files[0];
+                            if (file) addPhoto(block.id, file);
+                          };
+                          input.click();
+                        }}>
+                          <Camera className="h-3 w-3 mr-1" />
+                          Add Photo
+                        </Button>
+                      </div>
+                      {block.photos && block.photos.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {block.photos.map((photo) => (
+                            <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                              <img src={photo.url} alt="Farm progress" className="w-full h-full object-cover" />
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                                {new Date(photo.timestamp).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                          <Camera className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">No photos yet</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="soil" className="mt-4">

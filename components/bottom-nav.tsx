@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Sprout, MessageSquare, Bell, User } from "lucide-react";
+import { Home, Sprout, MessageSquare, Users, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,10 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { name: "Home", icon: Home, href: "/" },
-    { name: "My Farm", icon: Sprout, href: "/farm" },
+    { name: "Home", icon: Home, href: "/dashboard" },
+    { name: "Farm", icon: Sprout, href: "/farm" },
     { name: "AgriVoice", icon: MessageSquare, href: "/advisor" },
-    { name: "Alerts", icon: Bell, href: "/alerts" },
+    { name: "Team", icon: Users, href: "/team" },
     { name: "Profile", icon: User, href: "/profile" },
   ];
 

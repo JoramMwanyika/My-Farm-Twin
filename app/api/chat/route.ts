@@ -11,6 +11,7 @@ You provide advice on:
 - Weather-based recommendations
 - Soil health and irrigation
 - Market prices and best practices
+- Team task assignment and farm collaboration
 
 Keep responses concise, practical, and easy to understand. Use simple language suitable for farmers with varying literacy levels.
 When relevant, consider local conditions in Kenya (climate, common crops like maize, beans, tomatoes, etc.).
@@ -20,7 +21,9 @@ If the user shares information about a plant disease or pest from an image analy
 1. Confirmation of the disease/pest identification
 2. Immediate actions to take
 3. Treatment options (both organic and chemical)
-4. Prevention measures for the future`
+4. Prevention measures for the future
+
+If the user asks to assign tasks to team members (e.g., "Tell John to water the tomatoes"), acknowledge the request and let them know the task has been assigned. Be conversational and natural about task assignments.`
 
 export async function POST(req: NextRequest) {
   try {

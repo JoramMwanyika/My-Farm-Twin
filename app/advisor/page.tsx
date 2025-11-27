@@ -59,6 +59,7 @@ export default function AdvisorPage() {
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
   const continuousRecognitionRef = useRef<{ stop: () => void } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isSpeakingInProgressRef = useRef(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -67,6 +68,30 @@ export default function AdvisorPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const detectTaskAssignment = (text: string): boolean => {
+    const lowerText = text.toLowerCase()
+    const assignmentKeywords = [
+      "assign",
+      "tell",
+      "have",
+      "ask",
+      "get",
+      "remind",
+    ]
+    const taskKeywords = [
+      "water",
+      "plant",
+      "fertilize",
+      "weed",
+      "harvest",
+      "spray",
+    ]
+
+    return assignmentKeywords.some((keyword) => lowerText.includes(keyword)) &&
+           (taskKeywords.some((keyword) => lowerText.includes(keyword)) ||
+            lowerText.includes("to "))
+  }
 
   const analyzeImage = async (
     file: File,
@@ -92,9 +117,18 @@ export default function AdvisorPage() {
   }
 
   const sendToAI = async (userText: string, imageAnalysisData?: string, autoSpeakResponse = false) => {
+    // Prevent duplicate calls while already processing
+    if (isLoading) {
+      console.log("Already processing a request, ignoring duplicate call")
+      return
+    }
+    
     setIsLoading(true)
 
     try {
+      // Check if this is a task assignment command
+      const isTaskAssignment = detectTaskAssignment(userText)
+      
       // Translate to English if needed
       let textToSend = userText
       if (language !== "en") {
@@ -106,6 +140,49 @@ export default function AdvisorPage() {
         if (translateRes.ok) {
           const { translatedText } = await translateRes.json()
           textToSend = translatedText
+        }
+      }
+
+      // If it's a task assignment, process it
+      if (isTaskAssignment) {
+        try {
+          const taskResponse = await fetch("/api/assign-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ voiceCommand: textToSend }),
+          })
+
+          const taskData = await taskResponse.json()
+
+          if (taskData.success) {
+            // Save the task to localStorage
+            const tasksData = localStorage.getItem("farmTeamTasks")
+            const tasks = tasksData ? JSON.parse(tasksData) : []
+            tasks.push(taskData.task)
+            localStorage.setItem("farmTeamTasks", JSON.stringify(tasks))
+
+            // Create activity log
+            const logsData = localStorage.getItem("farmActivityLogs")
+            const logs = logsData ? JSON.parse(logsData) : []
+            logs.push({
+              id: `log-${Date.now()}`,
+              taskId: taskData.task.id,
+              memberId: "user-1",
+              memberName: "Farm Owner",
+              action: "assigned",
+              timestamp: new Date().toISOString(),
+              details: `Assigned via voice command`,
+            })
+            localStorage.setItem("farmActivityLogs", JSON.stringify(logs))
+
+            toast.success(`Task assigned to ${taskData.memberName}!`, {
+              description: "They will be notified via SMS",
+            })
+          }
+
+          // Continue with AI response about the task
+        } catch (error) {
+          console.error("Task assignment error:", error)
         }
       }
 
@@ -158,9 +235,25 @@ export default function AdvisorPage() {
       }
       setMessages((prev) => [...prev, aiMsg])
 
-      // Auto-speak if enabled or if in voice mode
-      if (autoSpeak || autoSpeakResponse) {
-        handleSpeak(finalMessage)
+      // Auto-speak if enabled, in voice mode, or if explicitly requested
+      // Use a ref to prevent duplicate speech calls
+      if ((autoSpeak || isVoiceMode || autoSpeakResponse) && !isSpeakingInProgressRef.current) {
+        isSpeakingInProgressRef.current = true
+        
+        // Cancel any ongoing speech first to prevent overlap
+        window.speechSynthesis.cancel()
+        setIsSpeaking(false)
+        
+        // Wait a bit for cancellation to complete and message to be added to the DOM
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        try {
+          await handleSpeak(finalMessage)
+        } catch (error) {
+          console.error("Error in auto-speak:", error)
+        } finally {
+          isSpeakingInProgressRef.current = false
+        }
       }
     } catch (error) {
       console.error("AI Error:", error)
@@ -326,10 +419,28 @@ export default function AdvisorPage() {
     } else {
       // Start voice conversation mode
       setIsVoiceMode(true)
+      
+      // Greet the user when starting voice mode
+      const greeting = language === 'sw' 
+        ? "Habari! Niko tayari kuzungumza nawe. Niambie, nikusaidie namna gani leo?"
+        : language === 'fr'
+        ? "Bonjour! Je suis prêt à vous parler. Comment puis-je vous aider aujourd'hui?"
+        : "Hello! I'm ready to talk with you. How can I help you today?"
+      
       toast.success("Voice conversation started", { 
         description: `Speak in ${currentLang.name}. I'll respond automatically.`,
         duration: 3000
       })
+      
+      // Speak the greeting
+      setIsSpeaking(true)
+      try {
+        await speakText(greeting, language)
+      } catch (error) {
+        console.error("Greeting speech error:", error)
+      } finally {
+        setIsSpeaking(false)
+      }
 
       continuousRecognitionRef.current = await startContinuousRecognition(
         async (text, detectedLang) => {
@@ -363,8 +474,11 @@ export default function AdvisorPage() {
   }
 
   const handleSpeak = async (text: string) => {
-    if (isSpeaking) {
-      window.speechSynthesis.cancel()
+    // Cancel any existing speech first to prevent overlap
+    window.speechSynthesis.cancel()
+    
+    // If already speaking and user clicks to stop (not in voice mode)
+    if (isSpeaking && !isVoiceMode) {
       setIsSpeaking(false)
       return
     }
@@ -392,11 +506,31 @@ export default function AdvisorPage() {
       .replace(/\n{3,}/g, '\n\n')
       .trim()
 
+    // Split text into sentences for more natural pauses
+    // This helps break down long responses into manageable chunks
+    const sentences = cleanText
+      .split(/(?<=[.!?])\s+/)
+      .filter(s => s.trim().length > 0)
+
     setIsSpeaking(true)
     try {
-      await speakText(cleanText, language)
-    } catch {
-      toast.error("Could not speak the message")
+      // Speak each sentence one at a time with a small pause between
+      for (let i = 0; i < sentences.length; i++) {
+        const sentence = sentences[i]
+        await speakText(sentence, language)
+        // Small pause between sentences for better comprehension
+        if (i < sentences.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
+      }
+    } catch (error) {
+      console.error("Speech error:", error)
+      if (isVoiceMode) {
+        // Don't show error toast in voice mode, it's distracting
+        console.error("Speech failed in voice mode")
+      } else {
+        toast.error("Could not speak the message")
+      }
     } finally {
       setIsSpeaking(false)
     }

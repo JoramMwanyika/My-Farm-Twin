@@ -225,7 +225,7 @@ export default function LandingPage() {
             <div className="relative order-1 lg:order-2">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-green-100">
                 <Image
-                  src="/Chasing green 💸💰.jpeg"
+                  src="/chasing-green.jpeg"
                   alt="Successful farmers using AgriVoice technology"
                   width={700}
                   height={500}
