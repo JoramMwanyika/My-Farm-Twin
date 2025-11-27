@@ -1,8 +1,8 @@
-# 🌾 My Farm Twin - AI-Powered Smart Farming Assistant
+# 🌾 AgriVoice AI - Voice-First Smart Farming Platform
 
 > **Hackathon Submission Project**
 
-My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farming advisor designed specifically for smallholder farmers in Kenya and across Africa. It bridges the technology gap by providing accessible, multilingual agricultural insights powered by Azure AI services.
+**AgriVoice AI** is a revolutionary voice-first AI farming advisor designed specifically for smallholder farmers in Kenya and across Africa. Breaking down literacy and technology barriers, farmers can speak to AgriVoice in their native language (English, Kiswahili, or Sheng) to get instant agricultural advice, disease diagnosis, weather updates, and farm management tools—all through natural conversation.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)
@@ -14,16 +14,43 @@ My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farmi
 ## 📋 Hackathon Submission
 
 ### Project Overview
-**My Farm Twin** solves the critical challenge of limited access to agricultural expertise for smallholder farmers in Africa. By combining Azure AI services with an intuitive multilingual interface, farmers can get instant farming advice, detect plant diseases, monitor their farms, and receive alerts—all through voice interaction in their native language (English, Kiswahili, or French).
+**AgriVoice AI** addresses the critical challenge of limited access to agricultural expertise for smallholder farmers across Africa. Unlike traditional farming apps that require literacy and smartphone familiarity, AgriVoice is built around **natural voice conversation**. Farmers simply speak their questions in Kiswahili, Sheng, or English, and receive expert AI-powered guidance through voice responses—making cutting-edge agricultural technology accessible to everyone, regardless of education level.
+
+### Why AgriVoice AI is Unique
+
+#### 🎙️ **True Voice-First Design**
+- **Conversational AI**: Natural dialogue, not just voice commands
+- **Continuous Conversation Mode**: Hands-free farming advisor that listens and responds automatically
+- **Context-Aware Responses**: Remembers conversation history for intelligent follow-ups
+- **Zero Typing Required**: Perfect for farmers working in the field
+
+#### 🌍 **Hyper-Local & Culturally Relevant**
+- **Sheng Language Support**: First agricultural AI to support Kenyan street language
+- **Regional Dialects**: Understands Kiswahili variations across East Africa
+- **Local Farming Practices**: AI trained on African agricultural contexts
+- **Community Knowledge**: Incorporates traditional farming wisdom with modern science
+
+#### 📱 **Low-Literacy Optimized**
+- **Icon-Based Navigation**: Visual symbols instead of text menus
+- **Voice Onboarding**: Spoken tutorials guide new users
+- **Audio Feedback**: Every action confirmed with voice
+- **Picture-First Communication**: Crop photos replace lengthy descriptions
+
+#### 🚀 **Offline-Ready Intelligence**
+- **Cached Voice Responses**: Common questions available offline
+- **Progressive Web App**: Works on any device, no app store needed
+- **SMS/WhatsApp Fallback**: Reach farmers on feature phones
+- **Low-Bandwidth Optimized**: Works on 2G/3G networks
 
 ### Technologies Used
-- **Azure OpenAI (GPT-4)** - Intelligent farming advice and contextual recommendations
-- **Azure Computer Vision** - Plant disease detection and image analysis
-- **Azure Speech Service** - Multilingual voice recognition and text-to-speech
-- **Azure Translator** - Real-time translation across 60+ languages
-- **Next.js 16** - Modern React framework with Turbopack
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Responsive, mobile-first UI design
+- **Azure OpenAI (GPT-4)** - Context-aware conversational AI for farming advice
+- **Azure Computer Vision** - AI-powered plant disease detection from photos
+- **Azure Speech Service** - Natural voice recognition and neural text-to-speech
+- **Azure Translator** - Real-time translation across 60+ languages including Kiswahili
+- **Next.js 16** - Lightning-fast React framework with Turbopack
+- **TypeScript** - Type-safe, reliable codebase
+- **Tailwind CSS** - Mobile-first responsive design
+- **Progressive Web App** - Works offline, installable on any device
 
 ### Team Members
 - **Kalanza Victor** - [@Kalanza](https://github.com/Kalanza)
@@ -35,59 +62,68 @@ My Farm Twin is a comprehensive, mobile-first digital twin platform and AI farmi
 - **💻 Repository**: [https://github.com/JoramMwanyika/My-Farm-Twin](https://github.com/JoramMwanyika/My-Farm-Twin)
 - **🚀 Live Demo**: [Coming Soon]
 
-### Submission Details
-Please submit through: **[Hackathon Submission Page](https://github.com/armely/Hackathon/issues)**
 
-**Required Submission Items:**
-1. ✅ Short project description (above)
-2. ✅ Project Repository URL
-3. ⏳ Project Demo Video URL (upload to YouTube)
-4. ✅ Team Members with GitHub usernames
+## ✨ Core Features
 
----
+### 🎙️ **Voice Conversation Mode** (Flagship Feature)
+- **Natural Dialogue**: Have full conversations with AgriVoice, not just questions
+- **Hands-Free Operation**: Continuous listening mode - speak naturally, get automatic responses
+- **Context Memory**: AI remembers your farm, crops, and conversation history
+- **Interrupt & Clarify**: Stop mid-response to ask follow-up questions
+- **Multi-Turn Conversations**: "What about maize?" after discussing beans
+- **Voice Command Shortcuts**: "Check weather", "Scan my crop", "What should I do today?"
 
-## ✨ Features
+### 🌾 **Smart Farming Advisor**
+- **GPT-4 Powered Intelligence**: Expert-level agricultural knowledge
+- **Personalized Advice**: Recommendations based on your location, season, and soil
+- **Pest & Disease Guidance**: Identify threats and get treatment steps
+- **Crop Planning**: AI suggests what to plant when and where
+- **Weather-Aware Tips**: "Don't spray today, rain expected in 4 hours"
+- **Market Insights**: Best times to plant for optimal market prices
 
-### 🏠 Smart Dashboard
-- Real-time weather information with temperature, humidity, and wind data
-- Soil health monitoring with moisture levels and nutrient analysis
-- Priority alerts for dry spells, pest outbreaks, and irrigation needs
-- Quick action buttons for logging crop status and water usage
-- Beautiful, animated UI with gradient cards and smooth transitions
+### 📸 **AI-Powered Disease Detection**
+- **Instant Photo Analysis**: Upload crop image, get diagnosis in seconds
+- **Disease Identification**: Detects 100+ common crop diseases
+- **Severity Assessment**: Mild, Moderate, Severe classifications
+- **Treatment Plans**: Step-by-step remedies in simple language
+- **Prevention Tips**: Avoid future outbreaks
+- **Visual Comparison**: See healthy vs diseased crop examples
 
-### 🌱 Farm Digital Twin
-- Interactive visual map of farm plots with customizable colors
-- Real-time crop status tracking with growth progress indicators
-- Soil composition analysis (pH, Nitrogen, Phosphorus levels)
-- Farm task calendar with upcoming activities
-- Editable farm layout with add/edit/delete functionality
+### 🌍 **Multilingual & Voice-First**
+- **Languages**: English (🇬🇧), Kiswahili (🇰🇪), Sheng, Français (🇫🇷)
+- **Neural Voices**: Natural-sounding speech synthesis
+  - English: AvaNeural (en-US)
+  - Kiswahili: ZuriNeural (sw-KE) 
+  - French: DeniseNeural (fr-FR)
+- **Auto-Translation**: Speak Swahili, AI thinks in English, responds in Swahili
+- **Voice-Only Mode**: Complete app usage without touching screen
+- **Audio Feedback**: Every action confirmed with voice
 
-### 🤖 AI Advisor (AgriVoice)
-- **GPT-4 Powered Chat**: Context-aware farming advice using Azure OpenAI
-- **Multilingual Support**: English, Kiswahili (Swahili), and French
-- **Voice Interaction**: Speak in any supported language, get responses in your language
-- **Plant Disease Detection**: Upload crop images for AI-powered diagnosis
-- **Auto-translate**: Automatic translation between your language and the AI
-- **Voice Synthesis**: Hear responses in natural-sounding voices
+### 🏠 **Smart Dashboard**
+- **Real-Time Weather**: Temperature, humidity, wind speed, cloud cover
+- **Location-Based**: Automatic GPS detection or manual city selection
+- **8 East African Cities**: Nairobi, Mombasa, Kisumu, Nakuru, Eldoret, Thika, Nyeri, Machakos
+- **Weather Alerts**: Voice notifications for rain, storms, heat waves
+- **Soil Health Monitoring**: Moisture, pH, NPK levels
+- **Quick Actions**: Log activities, check crops, water reminders
 
-### 📸 Plant Disease Detection
-- Azure Computer Vision for image analysis
-- GPT-4 for disease identification and diagnosis
-- Detailed analysis including plant type, condition, severity, and symptoms
-- Treatment recommendations and prevention measures
+### 🌱 **Digital Farm Twin**
+- **Visual Farm Map**: See all plots in one interactive view
+- **Crop Tracking**: Monitor growth stages, health status, days to harvest
+- **Custom Plot Colors**: Color-code by crop type or status
+- **Task Calendar**: Upcoming planting, fertilizing, harvesting activities
+- **Edit Farm Layout**: Add, modify, or remove plots
+- **Progress Indicators**: Visual growth progress bars
+- **Soil Analysis**: pH, Nitrogen, Phosphorus, Potassium per plot
 
-### 🚨 Alert System
-- Critical, Warning, and Info priority levels
-- High-contrast visual indicators with color-coded alerts
-- Dismissible notifications with swipe gestures
-- Real-time updates with timestamps
-
-### 🌍 Accessibility & Localization
-- **Languages**: English (🇬🇧), Kiswahili (🇰🇪), Français (🇫🇷)
-- **Neural Voices**: AvaNeural (English), ZuriNeural (Swahili), DeniseNeural (French)
-- Large touch targets for easy mobile interaction
-- High-contrast earthy color scheme (greens, browns, yellows)
-- Icon-based navigation for low-literacy users
+### 🚨 **Intelligent Alert System**
+- **Priority Levels**: Critical (red), Warning (yellow), Info (blue)
+- **Voice Alerts**: Spoken notifications for urgent issues
+- **Proactive Warnings**: AI predicts problems before they occur
+- **Disease Outbreaks**: Alerts when disease detected nearby
+- **Weather Warnings**: Frost, drought, heavy rain predictions
+- **Irrigation Reminders**: "Water tomatoes - soil moisture low"
+- **Dismissible**: Swipe to clear resolved alerts
 
 ## 🛠️ Tech Stack
 
@@ -178,30 +214,62 @@ Please submit through: **[Hackathon Submission Page](https://github.com/armely/H
 ## 📁 Project Structure
 
 ```
-My-Farm-Twin/
+AgriVoice-AI/
 ├── app/                          # Next.js App Router pages
-│   ├── page.tsx                 # Home dashboard
-│   ├── advisor/                 # AI chat advisor
+│   ├── page.tsx                 # Landing page with marketing
+│   ├── login/                   # Authentication
 │   │   └── page.tsx
-│   ├── farm/                    # Farm digital twin
+│   ├── register/               # User registration
 │   │   └── page.tsx
-│   ├── alerts/                  # Alert notifications
+│   ├── dashboard/              # Main dashboard (protected)
 │   │   └── page.tsx
-│   ├── profile/                 # User profile
+│   ├── advisor/                # Voice AI chat (protected)
 │   │   └── page.tsx
-│   ├── api/                     # API routes
-│   │   ├── chat/               # GPT-4 chat endpoint
-│   │   ├── speech/             # Speech service token
-│   │   ├── translate/          # Translation endpoint
-│   │   └── analyze-image/      # Image analysis endpoint
-│   ├── layout.tsx              # Root layout
-│   └── globals.css             # Global styles
+│   ├── farm/                   # Digital farm twin (protected)
+│   │   └── page.tsx
+│   ├── alerts/                 # Alert notifications (protected)
+│   │   └── page.tsx
+│   ├── profile/                # User profile (protected)
+│   │   └── page.tsx
+│   ├── api/                    # API routes
+│   │   ├── chat/              # GPT-4 conversation endpoint
+│   │   ├── speech/token/      # Azure Speech Service auth
+│   │   ├── translate/         # Multi-language translation
+│   │   ├── analyze-image/     # Plant disease detection
+│   │   └── weather/           # Weather data endpoint
+│   ├── layout.tsx             # Root layout with auth
+│   └── globals.css            # Global styles & animations
 │
-├── components/                  # React components
-│   ├── header.tsx              # App header
-│   ├── bottom-nav.tsx          # Bottom navigation
-│   └── ui/                     # shadcn/ui components
+├── components/                 # React components
+│   ├── header.tsx             # Navigation header
+│   ├── bottom-nav.tsx         # Mobile bottom nav
+│   ├── auth-provider.tsx      # NextAuth session provider
+│   └── ui/                    # shadcn/ui components
 │       ├── button.tsx
+│       ├── card.tsx
+│       ├── dialog.tsx
+│       └── ...50+ components
+│
+├── lib/                       # Utility functions
+│   ├── speech.ts             # Azure Speech SDK wrapper
+│   │   ├── speakText()       # Text-to-speech
+│   │   ├── startSpeechRecognition() # One-time voice input
+│   │   └── startContinuousRecognition() # Conversation mode
+│   └── utils.ts              # Helper functions
+│
+├── auth.ts                   # NextAuth configuration
+├── auth.config.ts           # Auth callbacks & route protection
+├── middleware.ts            # Route protection middleware
+├── public/                  # Static assets
+│   ├── community-farm.jpeg  # Landing page images
+│   └── Chasing green.jpeg
+│
+├── .env.local              # Environment variables (gitignored)
+├── .env.example           # Environment template
+├── next.config.mjs        # Next.js configuration
+├── tailwind.config.ts     # Tailwind customization
+└── tsconfig.json          # TypeScript configuration
+```
 │       ├── card.tsx
 │       ├── dialog.tsx
 │       └── ...
@@ -222,34 +290,178 @@ My-Farm-Twin/
 ```
 
 
-## 💡 Usage Guide
+## 💡 How to Use AgriVoice AI
 
-### Navigation
-Use the **bottom navigation bar** to switch between pages:
-- 🏠 **Home**: Dashboard with weather, alerts, and quick actions
-- 💬 **Advisor**: AI chat with voice support
-- 🌱 **Farm**: Digital twin of your farm plots
-- 🚨 **Alerts**: Priority notifications
-- 👤 **Profile**: User settings and preferences
+### 🚀 Getting Started
 
-### AI Advisor Features
+1. **Create Account**: Register with email or use demo credentials
+   - Demo: `demo@agrivoice.com` / `password123`
+2. **Select Language**: Choose English, Kiswahili, or Français
+3. **Allow Microphone**: Grant browser permission for voice features
+4. **Start Conversation**: Click "Voice Chat" and start speaking!
 
-#### 1. Text Chat
-- Type your farming question in any language
-- AI automatically translates and responds in your language
-- Get context-aware advice about crops, pests, soil, weather, etc.
+### 🎯 Navigation
+Use the **bottom navigation bar** (mobile) or **header menu** (desktop):
+- 🏠 **Dashboard**: Weather, alerts, quick stats
+- 💬 **Advisor**: Voice AI conversation
+- 🌱 **Farm**: Digital farm management
+- 🚨 **Alerts**: Important notifications  
+- 👤 **Profile**: Settings and preferences
 
-#### 2. Voice Interaction
-1. Click the 🎤 microphone button
-2. Speak your question in English, Swahili, or French
-3. The AI transcribes, translates, and responds
-4. Enable "Auto-speak" to hear responses automatically
+---
 
-#### 3. Plant Disease Detection
-1. Click the 📷 camera button
-2. Upload or take a photo of your crop
-3. AI analyzes the image for diseases, pests, or issues
-4. Receive diagnosis with severity, symptoms, and treatment recommendations
+## 🎙️ Voice Conversation Guide
+
+### **Starting a Voice Conversation**
+
+1. **Click "Voice Chat" Button** (phone icon in top toolbar)
+2. **You'll see**: "Voice Conversation Active - Speak Freely"
+3. **Just speak naturally**: "Habari! Mbegu zangu za mahindi zina magonjwa gani?" 
+4. **AI responds automatically** with voice and text
+5. **Continue speaking** - no need to click buttons between turns
+6. **Click "End Call"** when done
+
+### **Voice Features**
+
+#### 🎤 **Single Voice Input** (One-Time)
+- Click microphone button
+- Speak your question
+- Text appears in input box
+- Review and send manually
+
+#### 📞 **Voice Conversation Mode** (Continuous)
+- Click "Voice Chat" button
+- Hands-free continuous conversation
+- AI auto-responds with voice
+- Perfect for working in the field
+
+#### 🔊 **Auto-Speak Toggle**
+- Enable to hear ALL AI responses
+- Works with typed messages too
+- Great for learning pronunciation
+
+#### 🌐 **Language Selector**
+- Switch between languages anytime
+- Voice recognition adapts automatically
+- AI responses match your language
+
+### **Example Voice Commands**
+
+```
+"What's the weather today?"
+"Scan my maize crop for diseases"
+"How do I treat tomato blight?"
+"When should I plant beans?"
+"Check my farm status"
+"What fertilizer for avocados?"
+"Njaa ya mahindi ni nini?" (What is maize rust?)
+```
+
+---
+
+## 📸 Plant Disease Detection Guide
+
+### **Step-by-Step**
+
+1. **Take a Photo**
+   - Click camera icon 📷
+   - Take photo directly OR upload from gallery
+   - Ensure good lighting and close-up of affected area
+
+2. **AI Analysis** (takes 3-5 seconds)
+   - Computer Vision analyzes image
+   - GPT-4 identifies disease
+   - Results appear with visual card
+
+3. **Get Diagnosis**
+   - 🌱 **Plant Type**: Detected crop (e.g., "Maize")
+   - 📊 **Condition**: Health status
+   - ⚠️ **Severity**: Mild / Moderate / Severe / Healthy
+   - 🔍 **Symptoms**: List of visible issues
+   - 💊 **Treatment**: Step-by-step remedy
+
+4. **Ask Follow-Up Questions**
+   - "How do I apply this treatment?"
+   - "Where can I buy the fungicide?"
+   - "Will this spread to other crops?"
+
+### **Tips for Best Results**
+✅ Take photos in daylight (not direct sunlight)  
+✅ Focus on affected leaves/stems  
+✅ Include multiple angles if possible  
+✅ Clean lens before shooting  
+❌ Avoid blurry images  
+❌ Don't take photos in dark/night  
+
+---
+
+## 🌾 Digital Farm Twin Guide
+
+### **Managing Your Farm**
+
+#### **View Farm Map**
+- See all plots visually
+- Color-coded by crop type
+- Growth progress bars
+- Tap any plot for details
+
+#### **Add New Plot**
+1. Click "Edit Layout"
+2. Click ➕ "Add Block"
+3. Enter:
+   - Plot name (e.g., "North Field")
+   - Crop type (e.g., "Maize")
+   - Plot size
+   - Choose color
+4. Save
+
+#### **Edit Existing Plot**
+- Click ✏️ pencil icon
+- Update crop, size, or color
+- Track growth stage changes
+
+#### **Delete Plot**
+- Click 🗑️ trash icon
+- Confirm deletion
+
+### **Soil Health Monitoring**
+
+Switch to **"Soil Health" tab** to see:
+- 🧪 **pH Level**: Acidity/alkalinity
+- 🌱 **Nitrogen (N)**: Leaf growth
+- 🌾 **Phosphorus (P)**: Root development  
+- 🍃 **Potassium (K)**: Disease resistance
+- 💡 **AI Recommendations**: Fertilizer suggestions
+
+### **Task Calendar**
+
+- **View upcoming activities**: Planting, watering, harvesting
+- **Add new tasks**: Set dates and descriptions
+- **Mark complete**: Check off finished tasks
+- **Voice reminders**: Get spoken alerts for due tasks
+
+---
+
+## 🌦️ Weather Dashboard
+
+### **Current Weather**
+- 🌡️ Temperature (°C)
+- 💧 Humidity (%)
+- 💨 Wind Speed (km/h)
+- ☁️ Cloud Cover (%)
+
+### **Location Selection**
+- **Auto-detect**: Uses device GPS
+- **Manual**: Choose from 8 East African cities
+  - Nairobi, Mombasa, Kisumu, Nakuru
+  - Eldoret, Thika, Nyeri, Machakos
+
+### **Weather Alerts**
+AI analyzes weather and warns:
+- 🌧️ "Heavy rain in 2 hours - delay spraying"
+- ☀️ "Heat wave next 3 days - increase watering"  
+- 🌬️ "Strong winds expected - secure young plants"
+- 💧 "Drought conditions - prioritize irrigation"
 
 ### Farm Digital Twin
 
@@ -272,74 +484,139 @@ Switch to the "Soil Health" tab to see:
 - Add new tasks with dates
 - Mark tasks as complete
 
-## 🔧 Development
+---
+
+## 🔧 Development & Deployment
 
 ### Available Scripts
 
 ```bash
-npm run dev      # Start development server
-npm run build    # Build for production
+npm run dev      # Start development server (Turbopack)
+npm run build    # Build production bundle
 npm run start    # Start production server
-npm run lint     # Run ESLint
+npm run lint     # Run ESLint code quality checks
 ```
 
 ### Environment Variables
 
 Create a `.env.local` file with these variables:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI deployment URL | `https://....azure.com/.../chat/completions` |
-| `AZURE_OPENAI_KEY` | Azure OpenAI API key | `abc123...` |
-| `AZURE_OPENAI_DEPLOYMENT` | Deployment name | `gpt-4` |
-| `AZURE_OPENAI_API_VERSION` | API version | `2025-01-01-preview` |
-| `AZURE_TRANSLATOR_KEY` | Azure Translator key | `def456...` |
-| `AZURE_TRANSLATOR_REGION` | Azure region | `eastus` |
-| `AZURE_SPEECH_KEY` | Azure Speech Service key | `ghi789...` |
-| `AZURE_SPEECH_REGION` | Azure region | `eastus` |
-| `AZURE_VISION_ENDPOINT` | Computer Vision URL | `https://....azure.com` |
-| `AZURE_VISION_KEY` | Computer Vision key | `jkl012...` |
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXTAUTH_SECRET` | NextAuth encryption secret | ✅ Yes |
+| `NEXTAUTH_URL` | App URL (http://localhost:3000) | ✅ Yes |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI deployment URL | ✅ Yes |
+| `AZURE_OPENAI_KEY` | Azure OpenAI API key | ✅ Yes |
+| `AZURE_OPENAI_DEPLOYMENT` | Deployment name (gpt-4) | ✅ Yes |
+| `AZURE_OPENAI_API_VERSION` | API version (2025-01-01-preview) | ✅ Yes |
+| `AZURE_TRANSLATOR_KEY` | Azure Translator key | ✅ Yes |
+| `AZURE_TRANSLATOR_REGION` | Azure region (eastus) | ✅ Yes |
+| `AZURE_TRANSLATOR_ENDPOINT` | Translator endpoint | ✅ Yes |
+| `AZURE_SPEECH_KEY` | Azure Speech Service key | ✅ Yes |
+| `AZURE_SPEECH_KEY` | Azure Speech Service key | ✅ Yes |
+| `AZURE_SPEECH_REGION` | Speech region (eastus) | ✅ Yes |
+| `AZURE_VISION_ENDPOINT` | Computer Vision endpoint | ✅ Yes |
+| `AZURE_VISION_KEY` | Computer Vision key | ✅ Yes |
+| `OPENWEATHER_API_KEY` | OpenWeatherMap API key | ⚠️ Optional |
+
+**Note**: Weather API has fallback mock data if key not provided.
 
 ### Setting Up Azure Services
 
-1. **Azure OpenAI**
-   - Create an Azure OpenAI resource
-   - Deploy a GPT-4 model
-   - Copy the endpoint and key
+#### 1. **Azure OpenAI (GPT-4)**
+```bash
+# Create resource
+az cognitiveservices account create \
+  --name agrivoice-openai \
+  --resource-group agrivoice-rg \
+  --kind OpenAI \
+  --sku S0 \
+  --location eastus
 
-2. **Azure Translator**
-   - Create a Translator resource
-   - Copy the key and region
+# Deploy GPT-4 model
+# Go to Azure Portal → OpenAI → Deployments → Create
+# Model: gpt-4, Deployment name: gpt-4
+```
 
-3. **Azure Speech Service**
-   - Create a Speech Services resource
-   - Copy the key and region
+#### 2. **Azure Translator**
+```bash
+# Create translator resource
+az cognitiveservices account create \
+  --name agrivoice-translator \
+  --resource-group agrivoice-rg \
+  --kind TextTranslation \
+  --sku S1 \
+  --location eastus
+```
 
-4. **Azure Computer Vision**
-   - Create a Computer Vision resource
-   - Copy the endpoint and key
+#### 3. **Azure Speech Service**
+```bash
+# Create speech resource
+az cognitiveservices account create \
+  --name agrivoice-speech \
+  --resource-group agrivoice-rg \
+  --kind SpeechServices \
+  --sku S0 \
+  --location eastus
+```
 
-See [Azure Documentation](https://docs.microsoft.com/azure/) for detailed setup instructions.
+#### 4. **Azure Computer Vision**
+```bash
+# Create vision resource
+az cognitiveservices account create \
+  --name agrivoice-vision \
+  --resource-group agrivoice-rg \
+  --kind ComputerVision \
+  --sku S1 \
+  --location eastus
+```
 
-## 🎨 Design System
+**Quick Setup**: See [Azure AI Setup Guide](https://docs.microsoft.com/azure/cognitive-services/) for detailed instructions.
 
-### Color Palette
+---
 
-The app uses an **earthy, agricultural theme**:
+## 🎨 Design Philosophy
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Primary Green | `#2d5a47` | Main actions, links |
-| Background Beige | `#f0efe9` | Page backgrounds |
-| Warning Yellow | `#e5b045` | Warnings, alerts |
-| Critical Red | `#c94a4a` | Critical alerts |
-| Dark Forest Green | `#1a3c2f` | Text, headers |
+### **Voice-First, Visual-Second**
 
-### Typography
+AgriVoice is designed around the principle that **voice is the primary interface**, with visuals as support:
 
-- **Headings**: Serif font (elegant, readable)
-- **Body**: Sans-serif font (clean, modern)
-- **Font Sizes**: Large for accessibility (16px minimum)
+- 🎙️ **Every action has a voice equivalent**
+- 🔊 **All text can be spoken**
+- 👆 **Large touch targets (min 44px)**
+- 🎨 **High contrast for outdoor visibility**
+- 🌍 **Icons transcend language barriers**
+
+### **Color System**
+
+AgriVoice uses an **agricultural color palette** inspired by nature:
+
+| Color | Hex | Usage | Meaning |
+|-------|-----|-------|---------|
+| AgriVoice Green | `#1FAA59` - `#22C55E` | Primary actions, CTAs | Growth, fertility |
+| Soil Brown | `#8B4513` - `#A0522D` | Backgrounds, earth tones | Connection to land |
+| Sunshine Yellow | `#FCD34D` | Warnings, highlights | Energy, attention |
+| Harvest Orange | `#FB923C` | Moderate alerts | Ripeness, action |
+| Alert Red | `#EF4444` | Critical warnings | Danger, urgency |
+| Sky Blue | `#3B82F6` | Info, water | Rain, irrigation |
+| Forest Green | `#166534` | Success states | Healthy crops |
+
+### **Typography & Accessibility**
+
+- **Font Family**: System fonts for fast loading
+- **Minimum Size**: 16px body text (WCAG AAA)
+- **Line Height**: 1.6 for easy reading
+- **Contrast Ratio**: Minimum 7:1 (WCAG AAA)
+- **Touch Targets**: Minimum 44×44px (iOS/Android guidelines)
+- **Voice Labels**: Every button has aria-label for screen readers
+
+### **Animation Principles**
+
+- **Micro-interactions**: Confirm user actions
+- **Smooth transitions**: 200-300ms duration
+- **Purpose-driven**: Animations guide attention
+- **Performance**: GPU-accelerated transforms
+- **Voice sync**: Animations match voice feedback
 
 ### Components
 
