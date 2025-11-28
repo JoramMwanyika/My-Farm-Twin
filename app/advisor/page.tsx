@@ -60,6 +60,37 @@ export default function AdvisorPage() {
   const continuousRecognitionRef = useRef<{ stop: () => void } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isSpeakingInProgressRef = useRef(false)
+  // When true, recognition callbacks should ignore results (prevents AI speech self-trigger)
+  const recognitionPausedRef = useRef(false)
+  // Track last processed user utterance to avoid duplicates
+  const lastUserRequestRef = useRef<{ text: string; ts: number } | null>(null)
+  // Reusable continuous recognition callbacks (stored as refs so they can be restarted)
+  const continuousOnResultRef = useRef<((text: string, language: string) => void | Promise<void>) | null>(null)
+  const continuousOnErrorRef = useRef<((error: any) => void) | null>(null)
+  const continuousOnListeningRef = useRef<((isListening: boolean) => void) | null>(null)
+  const recognitionWasActiveRef = useRef(false)
+  // Prevent overlapping or duplicate speak calls across async flows
+  const aiSpeakLockRef = useRef<number>(0)
+
+  // Helper to (re)start the continuous recognizer using current callbacks
+  const startContinuousRecognizer = async () => {
+    try {
+      // Avoid starting a second recognizer if one is already active
+      if (continuousRecognitionRef.current) {
+        console.log("Continuous recognizer already running")
+        return
+      }
+
+      continuousRecognitionRef.current = await startContinuousRecognition(
+        continuousOnResultRef.current!,
+        continuousOnErrorRef.current!,
+        continuousOnListeningRef.current!,
+        language,
+      )
+    } catch (err) {
+      console.error("Failed to start continuous recognizer:", err)
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -117,12 +148,24 @@ export default function AdvisorPage() {
   }
 
   const sendToAI = async (userText: string, imageAnalysisData?: string, autoSpeakResponse = false) => {
+    console.log('[advisor] sendToAI START', { userText: userText.slice(0, 140), autoSpeakResponse, ts: new Date().toISOString() })
+    const normalized = userText.trim().toLowerCase()
+    const now = Date.now()
+    // If same text was processed very recently, ignore to avoid duplicates
+    if (lastUserRequestRef.current && lastUserRequestRef.current.text === normalized && (now - lastUserRequestRef.current.ts) < 5000) {
+      console.log("Duplicate user utterance detected, ignoring")
+      return
+    }
+
+    // Mark this request as the last processed
+    lastUserRequestRef.current = { text: normalized, ts: now }
+
     // Prevent duplicate calls while already processing
     if (isLoading) {
       console.log("Already processing a request, ignoring duplicate call")
       return
     }
-    
+
     setIsLoading(true)
 
     try {
@@ -234,25 +277,38 @@ export default function AdvisorPage() {
         text: finalMessage,
       }
       setMessages((prev) => [...prev, aiMsg])
+      console.log('[advisor] AI message appended', { preview: finalMessage.slice(0, 140), ts: new Date().toISOString() })
 
-      // Auto-speak if enabled, in voice mode, or if explicitly requested
-      // Use a ref to prevent duplicate speech calls
-      if ((autoSpeak || isVoiceMode || autoSpeakResponse) && !isSpeakingInProgressRef.current) {
-        isSpeakingInProgressRef.current = true
-        
-        // Cancel any ongoing speech first to prevent overlap
-        window.speechSynthesis.cancel()
-        setIsSpeaking(false)
-        
-        // Wait a bit for cancellation to complete and message to be added to the DOM
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
-        try {
-          await handleSpeak(finalMessage)
-        } catch (error) {
-          console.error("Error in auto-speak:", error)
-        } finally {
-          isSpeakingInProgressRef.current = false
+      // Determine whether to speak: during a voice call ignore the global `autoSpeak` toggle
+      // Speak in voice mode only once per response. Outside voice mode, respect autoSpeak toggles.
+      const shouldSpeak = isVoiceMode ? true : (autoSpeak || autoSpeakResponse)
+
+      // Auto-speak if allowed; use a ref to prevent duplicate speech calls
+      if (shouldSpeak && !isSpeakingInProgressRef.current) {
+        // Additional lock to avoid multiple speak calls within a short window
+        const now = Date.now()
+        if (now - aiSpeakLockRef.current < 1000) {
+          console.log("AI speak locked, skipping duplicate speak")
+        } else {
+          aiSpeakLockRef.current = now
+          isSpeakingInProgressRef.current = true
+
+          // Cancel any ongoing browser speech first to prevent overlap
+          try { window.speechSynthesis.cancel() } catch (e) { /** ignore */ }
+          setIsSpeaking(false)
+
+          // Wait briefly for cancellation and for message to render
+          await new Promise(resolve => setTimeout(resolve, 200))
+
+          try {
+            await handleSpeak(finalMessage)
+          } catch (error) {
+            console.error("Error in auto-speak:", error)
+          } finally {
+            isSpeakingInProgressRef.current = false
+            // update lock timestamp so subsequent speaks are allowed after a short cooldown
+            aiSpeakLockRef.current = Date.now()
+          }
         }
       }
     } catch (error) {
@@ -265,7 +321,14 @@ export default function AdvisorPage() {
       setMessages((prev) => [...prev, aiMsg])
       toast.error("Connection issue. Please try again.")
     } finally {
+      console.log('[advisor] sendToAI FINALLY (about to clear loading)', { userText: userText.slice(0, 80), ts: new Date().toISOString() })
       setIsLoading(false)
+      // allow re-processing same text after a short cooldown
+      setTimeout(() => {
+        if (lastUserRequestRef.current && (Date.now() - lastUserRequestRef.current.ts) > 5000) {
+          lastUserRequestRef.current = null
+        }
+      }, 5000)
     }
   }
 
@@ -323,7 +386,7 @@ export default function AdvisorPage() {
     await sendToAI(userText, imageAnalysisData)
   }
 
-  const handleActionClick = (action: string) => {
+  const handleActionClick = async (action: string) => {
     if (action === "Scan plant for disease") {
       fileInputRef.current?.click()
       return
@@ -331,7 +394,7 @@ export default function AdvisorPage() {
 
     const userMsg: Message = { id: Date.now(), role: "user", text: action }
     setMessages((prev) => [...prev, userMsg])
-    sendToAI(action)
+    await sendToAI(action)
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,7 +474,13 @@ export default function AdvisorPage() {
   const toggleVoiceMode = async () => {
     if (isVoiceMode) {
       // Stop voice conversation mode
-      continuousRecognitionRef.current?.stop()
+      try {
+        continuousRecognitionRef.current?.stop()
+      } catch (e) {
+        console.warn("Error stopping continuous recognizer:", e)
+      } finally {
+        continuousRecognitionRef.current = null
+      }
       setIsVoiceMode(false)
       window.speechSynthesis.cancel()
       setIsSpeaking(false)
@@ -442,34 +511,60 @@ export default function AdvisorPage() {
         setIsSpeaking(false)
       }
 
-      continuousRecognitionRef.current = await startContinuousRecognition(
-        async (text, detectedLang) => {
-          if (!text.trim() || isLoading) return
-          
-          toast.success("Heard you", { description: text })
-          
+      // prepare continuous callbacks and start recognizer via helper
+      continuousOnResultRef.current = async (text, detectedLang) => {
+        console.log(`[advisor] continuousOnResult triggered at ${new Date().toISOString()} - text:`, text)
+        // Ignore recognition results while paused or when AI is speaking or while loading
+        if (recognitionPausedRef.current || isSpeaking || isLoading) {
+          console.log('[advisor] continuousOnResult skipped: paused/speaking/loading')
+          return
+        }
+
+        // Avoid immediately re-processing right after assistant spoke
+        if (Date.now() - aiSpeakLockRef.current < 1500) {
+          console.log('[advisor] continuousOnResult skipped: recent AI speak lock')
+          return
+        }
+
+        if (!text.trim()) return
+
+        toast.success("Heard you", { description: text })
+
+        // Prevent the recognizer from processing speech while we handle this input
+        recognitionPausedRef.current = true
+        try {
           // Add user message
+          console.log('[advisor] Adding user message from continuous recognizer:', text)
           const userMsg: Message = { id: Date.now(), role: "user", text }
           setMessages((prev) => [...prev, userMsg])
-          
+
           // Send to AI and auto-speak response
+          console.log('[advisor] Calling sendToAI from continuous recognizer')
           await sendToAI(text, undefined, true)
-        },
-        (error) => {
-          console.error("Voice mode error:", error)
-          if (error !== 'no-speech') {
-            toast.error("Voice error", { description: "Restarting listening..." })
-          }
-        },
-        (isListening) => {
-          // Visual feedback for listening state
-          if (!isListening && isVoiceMode) {
-            // Recognition stopped unexpectedly, might need to restart
-            console.log("Recognition stopped, mode still active")
-          }
-        },
-        language,
-      )
+          console.log('[advisor] sendToAI finished (continuous recognizer)')
+        } finally {
+          // Small delay before resuming recognition to avoid picking up the AI voice
+          setTimeout(() => {
+            recognitionPausedRef.current = false
+          }, 300)
+        }
+      }
+
+      continuousOnErrorRef.current = (error) => {
+        console.error("Voice mode error:", error)
+        if (error !== 'no-speech') {
+          toast.error("Voice error", { description: "Restarting listening..." })
+        }
+      }
+
+      continuousOnListeningRef.current = (isListening) => {
+        if (!isListening && isVoiceMode) {
+          console.log("Recognition stopped, mode still active")
+        }
+      }
+
+      // Start recognizer using the shared helper
+      await startContinuousRecognizer()
     }
   }
 
@@ -514,6 +609,24 @@ export default function AdvisorPage() {
 
     setIsSpeaking(true)
     try {
+      // If in voice mode, stop the continuous recognizer to avoid picking up AI speech
+      if (isVoiceMode && continuousRecognitionRef.current) {
+        try {
+          recognitionWasActiveRef.current = true
+          continuousRecognitionRef.current.stop()
+          // allow time for the recognizer to stop
+          await new Promise((r) => setTimeout(r, 200))
+        } catch (e) {
+          console.warn("Failed to stop recognizer before speaking:", e)
+        } finally {
+          // Clear the ref so starting a new one later works reliably
+          continuousRecognitionRef.current = null
+        }
+      }
+
+      // Also mark recognition paused to be safe
+      recognitionPausedRef.current = true
+
       // Speak each sentence one at a time with a small pause between
       for (let i = 0; i < sentences.length; i++) {
         const sentence = sentences[i]
@@ -533,6 +646,18 @@ export default function AdvisorPage() {
       }
     } finally {
       setIsSpeaking(false)
+      // Resume recognition after speaking
+      recognitionPausedRef.current = false
+
+      if (isVoiceMode && recognitionWasActiveRef.current) {
+        try {
+          await startContinuousRecognizer()
+        } catch (e) {
+          console.error("Failed to restart recognizer after speaking:", e)
+        } finally {
+          recognitionWasActiveRef.current = false
+        }
+      }
     }
   }
 

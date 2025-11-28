@@ -22,13 +22,31 @@ async function getSpeechConfig(): Promise<{ token: string; region: string } | nu
   }
 }
 
+// Simple in-module last-spoken guard to avoid duplicate TTS calls in quick succession
+let _lastSpoken: { text: string; ts: number } | null = null
+
 export async function speakText(text: string, language = "en"): Promise<void> {
+  const normalized = (text || "").trim()
+  const now = Date.now()
+
+  // If the same text was spoken very recently, skip to avoid duplicate voices
+  if (_lastSpoken && _lastSpoken.text === normalized && (now - _lastSpoken.ts) < 2000) {
+    console.log(`[speech] Skipping duplicate speak for text (within 2s): ${normalized.slice(0, 80)}`)
+    return Promise.resolve()
+  }
+
+  _lastSpoken = { text: normalized, ts: now }
+
+  console.log(`[speech] speakText START (${new Date(now).toISOString()}):`, normalized.slice(0, 120))
+
   return new Promise(async (resolve, reject) => {
     try {
       const config = await getSpeechConfig()
       if (!config) {
         // Fallback to browser speech synthesis
-        return speakTextBrowser(text, language)
+        const res = await speakTextBrowser(text, language)
+        console.log(`[speech] speakText END (browser) (${new Date().toISOString()})`)
+        return resolve(res)
       }
 
       const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(config.token, config.region)
@@ -43,21 +61,30 @@ export async function speakText(text: string, language = "en"): Promise<void> {
         (result) => {
           if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
             synthesizer.close()
+            console.log(`[speech] speakText END (sdk) (${new Date().toISOString()})`)
             resolve()
           } else {
             synthesizer.close()
+            console.warn(`[speech] speakText failed (sdk) reason=${result.reason}`)
             reject(new Error("Speech synthesis failed"))
           }
         },
         (error) => {
           synthesizer.close()
+          console.error(`[speech] speakText error (sdk):`, error)
           reject(error)
         },
       )
     } catch (error) {
       // Fallback to browser speech synthesis
-      await speakTextBrowser(text, language)
-      resolve()
+      try {
+        await speakTextBrowser(text, language)
+        console.log(`[speech] speakText END (fallback) (${new Date().toISOString()})`)
+        resolve()
+      } catch (e) {
+        console.error(`[speech] speakText fallback error:`, e)
+        reject(e)
+      }
     }
   })
 }
