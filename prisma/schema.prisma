@@ -1,0 +1,20 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SensorReading {
+  id          Int      @id @default(autoincrement())
+  blockId     Int
+  blockName   String
+  healthStatus String @default("unknown")
+  progress    Int      @default(0)
+  moisture    Float
+  temp        Float
+  createdAt   DateTime @default(now())
+}

@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
 
   // Using OpenWeatherMap API (free tier)
   const API_KEY = process.env.OPENWEATHER_API_KEY || ''; // You'll need to add this to .env.local
-  
+
   try {
     let url = '';
-    
+
     if (lat && lon) {
       // Fetch by coordinates
       url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       // Return mock data if API fails or no API key
       return NextResponse.json({
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Weather API error:', error);
-    
+
     // Return mock data on error
     return NextResponse.json({
       main: {
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         sunrise: Date.now() / 1000 - 21600,
         sunset: Date.now() / 1000 + 21600,
       },
-      name: city || 'Nairobi',
+      name: city || (lat && lon ? 'My Farm (Demo)' : 'Nairobi'),
       coord: {
         lat: lat ? parseFloat(lat) : -1.286389,
         lon: lon ? parseFloat(lon) : 36.817223,

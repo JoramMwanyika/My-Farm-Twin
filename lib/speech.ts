@@ -4,6 +4,8 @@ import * as sdk from "microsoft-cognitiveservices-speech-sdk"
 const LANGUAGE_MAP: Record<string, { speech: string; voice: string }> = {
   en: { speech: "en-US", voice: "en-US-AvaNeural" },
   sw: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" },
+  ki: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" }, // Fallback to Swahili
+  luo: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" }, // Fallback to Swahili
   fr: { speech: "fr-FR", voice: "fr-FR-DeniseNeural" },
 }
 

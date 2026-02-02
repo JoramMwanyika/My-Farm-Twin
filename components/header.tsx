@@ -10,7 +10,7 @@ export function Header({ title = "AgriVoice" }: { title?: string }) {
   const isAuthenticated = status === "authenticated";
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-[#1FAA59] via-[#22C55E] to-[#16A34A] shadow-lg shadow-green-500/20">
+    <header className="sticky top-0 z-40 w-full bg-[#1e293b] border-b border-slate-700 shadow-lg shadow-black/20">
       <div className="container flex h-16 items-center justify-between px-4">
         <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
           <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110 shadow-inner">

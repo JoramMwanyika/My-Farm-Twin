@@ -25,6 +25,7 @@ import {
   Activity,
   TrendingUp,
   CheckCircle,
+  Leaf,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -43,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 interface WeatherData {
   main: {
@@ -73,7 +75,7 @@ export default function Dashboard() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [locationName, setLocationName] = useState("Nairobi");
+  const [locationName, setLocationName] = useState("Nairobi"); // Default
   const [teamTasks, setTeamTasks] = useState<any[]>([]);
   const [calendarActivities, setCalendarActivities] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -105,47 +107,42 @@ export default function Dashboard() {
     };
 
     getLocationAndWeather();
-    loadTeamData();
-    loadCalendarData();
-    loadFarmBlocks();
+
+    // Initial fetch
+    fetchSensorData();
+
+    // Poll every 5 minutes (300000 ms)
+    const intervalId = setInterval(fetchSensorData, 300000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const loadTeamData = () => {
     const tasksData = localStorage.getItem("farmTeamTasks");
-    const logsData = localStorage.getItem("farmActivityLogs");
-    
-    if (tasksData) {
-      setTeamTasks(JSON.parse(tasksData));
-    }
-    
-    if (logsData) {
-      const logs = JSON.parse(logsData);
-      setRecentActivity(logs.slice(0, 5));
+    // ... existing code ...
+  };
+
+  // Clean up loadTeamData indentation if needed, but the main change is the fetch logic below
+
+  const fetchSensorData = async () => {
+    try {
+      const res = await fetch('/api/sensors');
+      if (res.ok) {
+        const data = await res.json();
+        setFarmBlocks(data.blocks);
+      }
+    } catch (e) {
+      console.error("Failed to fetch sensor data", e);
+      // Fallback to demo data if API fails
+      loadDemoBlocks();
     }
   };
 
-  const loadCalendarData = () => {
-    const saved = localStorage.getItem("cropActivities");
-    if (saved) {
-      const activities = JSON.parse(saved);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const upcoming = activities
-        .filter((a: any) => new Date(a.date) >= today)
-        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .slice(0, 3);
-      
-      setCalendarActivities(upcoming);
-    }
-  };
-
-  const loadFarmBlocks = () => {
-    // Load from localStorage or use demo data
+  const loadDemoBlocks = () => {
     const demoBlocks = [
-      { id: 1, name: "Block A - Maize", healthStatus: "healthy", progress: 60 },
-      { id: 2, name: "Block B - Beans", healthStatus: "warning", progress: 85 },
-      { id: 3, name: "Greenhouse - Tomatoes", healthStatus: "healthy", progress: 45 },
+      { id: 1, name: "Block A - Maize (Offline)", healthStatus: "healthy", progress: 60, moisture: "--", temp: "--" },
+      { id: 2, name: "Block B - Beans (Offline)", healthStatus: "warning", progress: 85, moisture: "--", temp: "--" },
+      { id: 3, name: "Greenhouse (Offline)", healthStatus: "healthy", progress: 45, moisture: "--", temp: "--" },
     ];
     setFarmBlocks(demoBlocks);
   };
@@ -157,7 +154,7 @@ export default function Dashboard() {
       if (lat && lon) {
         url += `?lat=${lat}&lon=${lon}`;
       }
-      
+
       const response = await fetch(url);
       const data = await response.json();
       setWeather(data);
@@ -190,502 +187,264 @@ export default function Dashboard() {
   const getWeatherIcon = (iconCode: string) => {
     const hour = new Date().getHours();
     const isDaytime = hour >= 6 && hour < 18;
-    
-    if (iconCode.includes('01')) return isDaytime ? <Sun className="h-16 w-16 opacity-80 animate-pulse" /> : <Sun className="h-16 w-16 opacity-60" />;
-    if (iconCode.includes('02') || iconCode.includes('03')) return <CloudRain className="h-16 w-16 opacity-80" />;
-    if (iconCode.includes('04')) return <CloudRain className="h-16 w-16 opacity-80" />;
-    if (iconCode.includes('09') || iconCode.includes('10')) return <CloudRain className="h-16 w-16 opacity-80 animate-pulse" />;
-    return <CloudRain className="h-16 w-16 opacity-80 animate-pulse" />;
-  };
 
-  const quickStats = [
-    { label: "Active Fields", value: "04", helper: "+1.2% vs last week", icon: Sprout },
-    { label: "Team Tasks", value: teamTasks.filter((t: any) => t.status === 'pending').length.toString().padStart(2, '0'), helper: `${teamTasks.filter((t: any) => t.status === 'in-progress').length} in progress`, icon: Users },
-    { label: "Next Activity", value: calendarActivities.length > 0 ? new Date(calendarActivities[0]?.date).getDate().toString().padStart(2, '0') : "--", helper: calendarActivities[0]?.activityType || "No upcoming", icon: CalendarIcon },
-    { label: "Healthy Blocks", value: `${Math.round((farmBlocks.filter((b: any) => b.healthStatus === 'healthy').length / farmBlocks.length) * 100)}%`, helper: "AI status check", icon: Activity },
-  ];
+    if (iconCode.includes('01')) return isDaytime ? <Sun className="h-14 w-14 text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse" /> : <Sun className="h-14 w-14 text-gray-300 opacity-60" />;
+    if (iconCode.includes('02') || iconCode.includes('03')) return <CloudRain className="h-14 w-14 text-gray-400" />;
+    if (iconCode.includes('04')) return <CloudRain className="h-14 w-14 text-gray-500" />;
+    if (iconCode.includes('09') || iconCode.includes('10')) return <CloudRain className="h-14 w-14 text-blue-400 animate-bounce delay-1000" />;
+    return <CloudRain className="h-14 w-14 text-blue-400" />;
+  };
 
   const getHealthStatusColor = (status: string) => {
     switch (status) {
-      case 'healthy':
-        return 'bg-green-100 text-green-700 border-green-300';
-      case 'warning':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-      case 'critical':
-        return 'bg-red-100 text-red-700 border-red-300';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'healthy': return 'bg-emerald-500/10 text-emerald-600 border-emerald-200';
+      case 'warning': return 'bg-amber-500/10 text-amber-600 border-amber-200';
+      case 'critical': return 'bg-rose-500/10 text-rose-600 border-rose-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8] pb-24">
+    <div className="min-h-screen bg-[#f0efe9] pb-24 font-sans text-[#0a1f16]">
       <Header />
 
-      <main className="container px-4 py-6 space-y-8 max-w-7xl mx-auto">
-        {/* Hero */}
-        <section className="rounded-3xl bg-gradient-to-br from-[#E6FFEA] via-white to-[#FFF9DB] border-2 border-green-200/50 p-8 space-y-8 shadow-2xl shadow-green-100/50 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-4">
-              <Badge
-                variant="outline"
-                className="w-fit border-2 border-green-500 text-green-700 bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all hover:scale-105 px-3 py-1.5"
-              >
-                <Clock className="h-3.5 w-3.5 mr-2" />
-                <span className="font-semibold">Tuesday • Nairobi, KE</span>
-              </Badge>
-              <h2 className="text-4xl lg:text-5xl font-serif text-green-900 font-bold tracking-tight">
-                Jambo, Samuel 👋
-              </h2>
-              <p className="text-muted-foreground max-w-xl text-base leading-relaxed">
-                Welcome to <span className="font-bold text-green-700">AgriVoice</span>, your AI-powered farming companion. 
-                Your digital farm twin synced overnight. See where attention matters most.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/advisor">
-                <Button
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-105"
-                  size="lg"
-                >
-                  <Mic className="mr-2 h-5 w-5" />
-                  Ask AgriVoice
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickStats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-              <Card
-                key={stat.label}
-                className="border-none bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group cursor-pointer animate-in fade-in slide-in-from-bottom-4"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-wide text-gray-600 font-semibold">
-                      {stat.label}
-                    </p>
-                    <Icon className="h-4 w-4 text-green-600" />
-                  </div>
-                  <p className="text-4xl font-serif text-green-600 font-bold">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    {stat.helper}
-                  </p>
-                </CardContent>
-              </Card>
-              );
-            })}
-          </div>
-        </section>
+      <main className="container px-4 py-8 max-w-7xl mx-auto space-y-10">
 
-        {/* Alerts + Weather */}
-        <section className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-          <Card className="bg-linear-to-br from-[#FFF7E0] to-[#FFEBB3] border-[#FFD447] shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6 flex flex-col gap-5 md:flex-row md:items-center">
-              <div className="p-4 rounded-2xl bg-white text-[#D97706] shadow-lg w-fit animate-pulse">
-                <AlertTriangle className="h-8 w-8" />
-              </div>
-              <div className="space-y-3 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#C17E00]">
-                  Priority alert
-                </p>
-                <h3 className="text-2xl font-serif text-[#5B3B00] font-bold">
-                  Dry spell incoming
-                </h3>
-                <p className="text-sm text-[#8A5B00] leading-relaxed">
-                  Rainfall{" "}
-                  <span className="font-bold text-[#C17E00]">-68%</span> below
-                  weekly average. Schedule irrigation for Blocks A &amp; B
-                  before 18:00.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-white/90 text-[#8A5B00] border-[#FFD447] shadow-sm"
-                  >
-                    3 affected fields
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="bg-white/90 text-[#8A5B00] border-[#FFD447] shadow-sm"
-                  >
-                    AI recommendation ready
-                  </Badge>
+        {/* Welcome Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+            <div className="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500 uppercase tracking-wider">
+              <Clock className="w-4 h-4" />
+              <span>{new Date().toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+            </div>
+            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-[#0a1f16]">
+              Jambo, <span className="text-[#2d5a47]">Samuel</span>
+            </h1>
+            <p className="text-gray-600 mt-2 max-w-xl">
+              Your <span className="font-bold text-[#2d5a47]">AgriTwin</span> is synced. Monitor your farm's vital signs below.
+            </p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+            <Link href="/advisor">
+              <Button className="h-12 px-6 rounded-full bg-[#1a3c2f] hover:bg-black text-white hover:scale-105 transition-all shadow-lg flex items-center gap-2">
+                <div className="p-1 rounded-full bg-[#c0ff01] text-black">
+                  <Mic className="w-3.5 h-3.5" />
                 </div>
-              </div>
-              <Button
-                variant="link"
-                className="px-0 text-[#8A5B00] font-semibold h-auto p-0 hover:text-[#C17E00] transition-colors group"
-                onClick={() =>
-                  toast.info("Recommendation: Irrigate 20L per sq meter")
-                }
-              >
-                View plan{" "}
-                <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                Ask AI Assistant
               </Button>
-            </CardContent>
-          </Card>
+            </Link>
+          </motion.div>
+        </div>
 
-          <div className="space-y-4">
-            <Card className="bg-linear-to-br from-[#1FAA59] to-[#18934B] text-white border-none shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="p-6">
-                {isLoadingWeather ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin opacity-80" />
-                  </div>
-                ) : weather ? (
-                  <>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-wide opacity-90 font-medium">
-                          Weather pulse
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3 opacity-80" />
-                          <span className="text-sm font-medium">{locationName}</span>
+        {/* Dashboard Grid */}
+        <motion.div
+          className="grid gap-6 md:grid-cols-2 lg:grid-cols-12"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          {/* Left Column (Weather & Stats) - Span 8 */}
+          <div className="lg:col-span-8 space-y-6">
+
+            {/* Weather Card */}
+            <motion.div variants={itemVariants}>
+              <Card className="rounded-3xl border-none shadow-xl bg-gradient-to-br from-[#1a3c2f] to-[#0f231b] text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <CardContent className="p-8 relative z-10">
+                  {isLoadingWeather ? (
+                    <div className="h-40 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#c0ff01]" />
+                    </div>
+                  ) : weather ? (
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                      <div className="space-y-4 text-center md:text-left">
+                        <div className="flex items-center gap-2 text-emerald-100/60 justify-center md:justify-start">
+                          <MapPin className="w-4 h-4" />
+                          <Dialog>
+                            <DialogTrigger className="hover:text-white transition-colors underline decoration-dotted underline-offset-4">
+                              {locationName}
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Change Location</DialogTitle>
+                                <DialogDescription>Select a city to view weather.</DialogDescription>
+                              </DialogHeader>
+                              <Select onValueChange={handleLocationChange} defaultValue={locationName}>
+                                <SelectTrigger><SelectValue placeholder="City" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Nairobi">Nairobi</SelectItem>
+                                  <SelectItem value="Mombasa">Mombasa</SelectItem>
+                                  <SelectItem value="Kisumu">Kisumu</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </DialogContent>
+                          </Dialog>
                         </div>
-                      </div>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-white hover:bg-white/20 h-8"
-                          >
-                            Change
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Change Location</DialogTitle>
-                            <DialogDescription>
-                              Select a city to view its weather
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <Select onValueChange={handleLocationChange} defaultValue={locationName}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select city" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Nairobi">Nairobi, Kenya</SelectItem>
-                                <SelectItem value="Mombasa">Mombasa, Kenya</SelectItem>
-                                <SelectItem value="Kisumu">Kisumu, Kenya</SelectItem>
-                                <SelectItem value="Nakuru">Nakuru, Kenya</SelectItem>
-                                <SelectItem value="Eldoret">Eldoret, Kenya</SelectItem>
-                                <SelectItem value="Kampala">Kampala, Uganda</SelectItem>
-                                <SelectItem value="Dar es Salaam">Dar es Salaam, Tanzania</SelectItem>
-                                <SelectItem value="Kigali">Kigali, Rwanda</SelectItem>
-                              </SelectContent>
-                            </Select>
+                        <div className="space-y-1">
+                          <h2 className="text-7xl font-serif font-thin tracking-tighter">
+                            {Math.round(weather.main.temp)}°
+                          </h2>
+                          <p className="text-xl text-emerald-100 capitalize font-light">
+                            {weather.weather[0].description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm text-emerald-100/70 pt-2">
+                          <div className="flex items-center gap-1.5">
+                            <Droplets className="w-4 h-4 text-[#c0ff01]" />
+                            <span>{weather.main.humidity}% Humidity</span>
                           </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <p className="text-4xl font-serif font-bold">
-                          {Math.round(weather.main.temp)}°C
-                        </p>
-                        <p className="text-sm opacity-90 capitalize">
-                          {weather.weather[0].description} • Feels like {Math.round(weather.main.feels_like)}°
-                        </p>
-                      </div>
-                      {getWeatherIcon(weather.weather[0].icon)}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-center py-8 opacity-80">Weather data unavailable</p>
-                )}
-              </CardContent>
-            </Card>
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="border-none bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardContent className="p-4 space-y-2 text-center">
-                  <div className="p-2 rounded-lg bg-[#E6FFEA] w-fit mx-auto">
-                    <Droplets className="h-5 w-5 text-[#1FAA59]" />
-                  </div>
-                  <p className="text-xs text-[#6B7280] font-medium">Humidity</p>
-                  <p className="font-bold text-[#0F172A] text-lg">
-                    {weather ? `${weather.main.humidity}%` : '—'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-none bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardContent className="p-4 space-y-2 text-center">
-                  <div className="p-2 rounded-lg bg-[#E6FFEA] w-fit mx-auto">
-                    <Wind className="h-5 w-5 text-[#1FAA59]" />
-                  </div>
-                  <p className="text-xs text-[#6B7280] font-medium">Wind</p>
-                  <p className="font-bold text-[#0F172A] text-lg">
-                    {weather ? `${Math.round(weather.wind.speed * 3.6)} km/h` : '—'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-none bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardContent className="p-4 space-y-2 text-center">
-                  <div className="p-2 rounded-lg bg-[#FFF7E0] w-fit mx-auto">
-                    <Sun className="h-5 w-5 text-[#FFB703]" />
-                  </div>
-                  <p className="text-xs text-[#6B7280] font-medium">Clouds</p>
-                  <p className="font-bold text-[#0F172A] text-lg">
-                    {weather ? `${weather.clouds.all}%` : '—'}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Quick Links & Features */}
-        <section className="grid gap-6 lg:grid-cols-3">
-          <Link href="/team" className="group">
-            <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-blue-700 group-hover:text-blue-800">
-                  <Users className="h-6 w-6" />
-                  <span>Team Collaboration</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">Manage tasks, assign work, and track team progress</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{teamTasks.filter((t: any) => t.status === 'pending').length} pending tasks</span>
-                  <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/calendar" className="group">
-            <Card className="border-2 border-purple-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-purple-700 group-hover:text-purple-800">
-                  <CalendarIcon className="h-6 w-6" />
-                  <span>Crop Calendar</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">Track planting schedules and get AI reminders</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{calendarActivities.length} upcoming activities</span>
-                  <ArrowRight className="h-4 w-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/advisor" className="group">
-            <Card className="border-2 border-green-200 hover:border-green-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full bg-gradient-to-br from-green-50 to-white">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-green-700 group-hover:text-green-800">
-                  <MessageSquare className="h-6 w-6" />
-                  <span>Ask AgriVoice AI</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">Get instant farming advice via voice or text</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
-                    <Mic className="h-3 w-3 mr-1" />
-                    Voice Ready
-                  </Badge>
-                  <ArrowRight className="h-4 w-4 text-green-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </section>
-
-        {/* Today's Highlights & Activity */}
-        <section className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-          {/* Calendar Preview & Team Activity */}
-          <div className="space-y-6">
-            {/* Calendar Preview */}
-            <Card className="border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-purple-600" />
-                    Upcoming Activities
-                  </CardTitle>
-                  <Link href="/calendar">
-                    <Button size="sm" variant="ghost" className="text-purple-600 hover:text-purple-700">
-                      View All
-                      <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {calendarActivities.length > 0 ? (
-                  <div className="space-y-3">
-                    {calendarActivities.map((activity: any, index: number) => (
-                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-100 hover:bg-purple-100 transition-colors">
-                        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-white text-purple-700 font-semibold border border-purple-200">
-                          <span className="text-xs">{new Date(activity.date).toLocaleDateString('en-US', { month: 'short' })}</span>
-                          <span className="text-lg">{new Date(activity.date).getDate()}</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 capitalize">{activity.activityType}</p>
-                          <p className="text-sm text-gray-600">{activity.cropType}</p>
-                        </div>
-                        {activity.reminderEnabled && (
-                          <Badge variant="outline" className="text-xs">
-                            🔔 {activity.reminderType}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No upcoming activities</p>
-                    <Link href="/calendar">
-                      <Button size="sm" variant="link" className="mt-2">
-                        Add Activity
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Team Activity Feed */}
-            <Card className="border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-600" />
-                    Recent Team Activity
-                  </CardTitle>
-                  <Link href="/team">
-                    <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-700">
-                      View All
-                      <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentActivity.map((log: any, index: number) => (
-                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          {log.action === 'assigned' && <Users className="h-4 w-4 text-blue-600" />}
-                          {log.action === 'started' && <Clock className="h-4 w-4 text-orange-600" />}
-                          {log.action === 'completed' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900">
-                            <span className="font-semibold">{log.memberName}</span>{' '}
-                            <span className="text-gray-600">{log.action}</span> a task
-                          </p>
-                          {log.details && (
-                            <p className="text-xs text-gray-500 mt-0.5">{log.details}</p>
-                          )}
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <Wind className="w-4 h-4 text-[#c0ff01]" />
+                            <span>{Math.round(weather.wind.speed)} m/s Wind</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Activity className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No recent activity</p>
-                    <Link href="/team">
-                      <Button size="sm" variant="link" className="mt-2">
-                        Add Team Members
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Farm Blocks Status */}
-          <Card className="border-green-200 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Sprout className="h-5 w-5 text-green-600" />
-                  Farm Blocks Status
-                </CardTitle>
-                <Link href="/farm">
-                  <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700">
-                    View All
-                    <ArrowRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {farmBlocks.map((block: any) => (
-                <div key={block.id} className="p-3 rounded-lg border-2 hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-gray-900">{block.name}</span>
-                    <Badge className={getHealthStatusColor(block.healthStatus)}>
-                      {block.healthStatus}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
-                        style={{ width: `${block.progress}%` }}
-                      />
+                      <div className="transform scale-125">
+                        {getWeatherIcon(weather.weather[0].icon)}
+                      </div>
                     </div>
-                    <span className="text-xs font-semibold text-gray-600">{block.progress}%</span>
-                  </div>
-                </div>
+                  ) : (
+                    <div className="text-center py-10 opacity-50">Weather Unavailable</div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Active Blocks", value: "3", icon: Sprout, color: "text-emerald-600", bg: "bg-emerald-100" },
+                { label: "Tasks Pending", value: teamTasks.filter((t: any) => t.status === 'pending').length || "0", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
+                { label: "Alerts", value: "1", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100" },
+                { label: "Health", value: "98%", icon: Activity, color: "text-rose-600", bg: "bg-rose-100" }
+              ].map((stat, i) => (
+                <motion.div variants={itemVariants} key={i}>
+                  <Card className="border-none shadow-sm hover:shadow-md transition-all h-full bg-white/60 backdrop-blur-sm">
+                    <CardContent className="p-5 flex flex-col items-center text-center space-y-3">
+                      <div className={`p-3 rounded-full ${stat.bg} ${stat.color} mb-1`}>
+                        <stat.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-[#0a1f16]">{stat.value}</div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">{stat.label}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
+            </div>
 
-              {farmBlocks.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Sprout className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No farm blocks yet</p>
-                  <Link href="/farm">
-                    <Button size="sm" variant="link" className="mt-2">
-                      Add Blocks
+            {/* Alerts Section */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-l-4 border-amber-400 bg-amber-50/50 shadow-sm">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-2 bg-amber-100 rounded-lg text-amber-600 mt-1">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-[#5B3B00] text-lg">Irrigation Advisory</h3>
+                    <p className="text-[#8A5B00] mt-1 text-sm leading-relaxed">
+                      Soil moisture levels in <strong>Block B (Beans)</strong> have dropped below 40%. Recommend scheduling irrigation for tomorrow morning.
+                    </p>
+                    <Button size="sm" variant="link" className="px-0 text-amber-700 mt-2 h-auto font-semibold">
+                      View Recommendation <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
-                  </Link>
-                </div>
-              )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-              {/* Today's Highlights - AI Summary */}
-              <div className="mt-6 p-4 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-yellow-200">
-                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-amber-800">
-                  <TrendingUp className="h-4 w-4" />
-                  Today's AI Highlights
-                </h4>
-                <ul className="space-y-2 text-sm text-amber-900">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span>2 blocks in optimal health</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <span>Block B needs irrigation attention</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CalendarIcon className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                    <span>3 activities scheduled this week</span>
-                  </li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+          </div>
+
+          {/* Right Column (Farm Status & Activity) - Span 4 */}
+          <div className="lg:col-span-4 space-y-6">
+
+            {/* Farm Blocks */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-none shadow-lg bg-white/80 backdrop-blur-md">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="font-serif text-xl">Farm Status</CardTitle>
+                  <Link href="/farm"><Button variant="ghost" size="sm" className="h-8">View All</Button></Link>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {farmBlocks.map((block: any) => (
+                    <div key={block.id} className="group p-3 rounded-xl hover:bg-white border border-transparent hover:border-gray-100 transition-all hover:shadow-sm">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-[#c0ff01] group-hover:text-black transition-colors">
+                            <Leaf className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-sm">{block.name}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className={`text-[10px] py-0 h-5 ${getHealthStatusColor(block.healthStatus)}`}>
+                                {block.healthStatus}
+                              </Badge>
+                              {(block.moisture !== undefined) && (
+                                <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                  <Droplets className="w-3 h-3" /> {block.moisture}%
+                                </span>
+                              )}
+                              {(block.temp !== undefined) && (
+                                <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                  <Thermometer className="w-3 h-3" /> {block.temp}°
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold">{block.progress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#0a1f16] to-[#2d5a47] rounded-full"
+                          style={{ width: `${block.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Upcoming Activity */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-none shadow-lg bg-white/80 backdrop-blur-md">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="font-serif text-xl">Upcoming</CardTitle>
+                  <Link href="/calendar"><Button variant="ghost" size="sm" className="h-8"><CalendarIcon className="w-4 h-4" /></Button></Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-0 relative">
+                    <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-100"></div>
+                    {calendarActivities.length > 0 ? calendarActivities.map((activity: any, i: number) => (
+                      <div key={i} className="relative pl-8 py-3 first:pt-0 last:pb-0">
+                        <div className="absolute left-[5px] top-4 w-4 h-4 rounded-full border-4 border-white bg-purple-500 shadow-sm z-10"></div>
+                        <div className="text-sm font-semibold">{activity.activityType}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{activity.cropType} • {new Date(activity.date).toLocaleDateString()}</div>
+                      </div>
+                    )) : (
+                      <div className="text-center py-6 text-gray-400 text-sm">No scheduled activities</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+          </div>
+
+        </motion.div>
       </main>
       <BottomNav />
     </div>

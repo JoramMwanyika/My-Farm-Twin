@@ -4,7 +4,7 @@ const AZURE_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT!
 const AZURE_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2025-01-01-preview"
 const AZURE_KEY = process.env.AZURE_OPENAI_KEY!
 
-const SYSTEM_PROMPT = `You are AgriVoice, a friendly and knowledgeable AI farming assistant for smallholder farmers in Kenya. 
+const SYSTEM_PROMPT = `You are AgriTwin, a friendly and knowledgeable AI farming assistant for smallholder farmers in Kenya. 
 You provide advice on:
 - Crop management (planting, fertilizing, harvesting)
 - Pest and disease control
@@ -17,6 +17,10 @@ Keep responses concise, practical, and easy to understand. Use simple language s
 When relevant, consider local conditions in Kenya (climate, common crops like maize, beans, tomatoes, etc.).
 Always be encouraging and supportive.
 
+You can understand and respond in Swahili (Kiswahili), Kikuyu (Gikuyu), and Luo (Dholuo) if the user speaks them.
+
+Please use natural punctuation to make the text easy to read and suitable for Text-to-Speech (TTS).
+
 If the user shares information about a plant disease or pest from an image analysis, provide detailed advice on:
 1. Confirmation of the disease/pest identification
 2. Immediate actions to take
@@ -27,11 +31,18 @@ If the user asks to assign tasks to team members (e.g., "Tell John to water the 
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, imageAnalysis } = await req.json()
+    const { messages, imageAnalysis, language } = await req.json()
+
+    // Determine target language name
+    let languageInstruction = ""
+    if (language === "sw") languageInstruction = "Reply in Swahili (Kiswahili)."
+    else if (language === "ki") languageInstruction = "Reply in Kikuyu (Gikuyu)."
+    else if (language === "luo") languageInstruction = "Reply in Luo (Dholuo)."
+    else if (language === "fr") languageInstruction = "Reply in French."
 
     // Build messages array
     const apiMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + (languageInstruction ? `\n\n${languageInstruction}` : "") },
       ...messages.map((m: { role: string; text: string }) => ({
         role: m.role === "ai" ? "assistant" : "user",
         content: m.text,
@@ -45,7 +56,9 @@ export async function POST(req: NextRequest) {
         `[Image Analysis Results: ${imageAnalysis}]\n\nUser question: ${apiMessages[lastUserIdx].content}`
     }
 
-    const url = `${AZURE_ENDPOINT}?api-version=${AZURE_API_VERSION}`
+    const endpointUrl = new URL(AZURE_ENDPOINT)
+    endpointUrl.searchParams.set("api-version", AZURE_API_VERSION)
+    const url = endpointUrl.toString()
 
     console.log("[v0] Calling Azure API at:", url)
 

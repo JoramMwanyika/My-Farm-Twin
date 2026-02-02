@@ -73,7 +73,10 @@ Respond in this JSON format:
   "summary": "Brief 1-2 sentence summary for farmer"
 }`
 
-    const gptResponse = await fetch(`${GPT_ENDPOINT}?api-version=${GPT_API_VERSION}`, {
+    const gptUrl = new URL(GPT_ENDPOINT)
+    gptUrl.searchParams.set("api-version", GPT_API_VERSION)
+
+    const gptResponse = await fetch(gptUrl.toString(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

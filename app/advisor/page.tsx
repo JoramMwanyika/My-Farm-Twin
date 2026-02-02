@@ -1,19 +1,18 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Mic, Send, Volume2, VolumeX, Globe, Loader2, Camera, X, ImageIcon, Phone, PhoneOff } from "lucide-react"
+import { Mic, Send, Volume2, VolumeX, Globe, Loader2, Phone, PhoneOff, Image as ImageIcon, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { speakText, startSpeechRecognition, startContinuousRecognition } from "@/lib/speech"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
 import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { motion, AnimatePresence } from "framer-motion"
 
 type Message = {
   id: number
@@ -33,15 +32,25 @@ type Message = {
 const LANGUAGES = [
   { code: "en", name: "English", flag: "🇬🇧" },
   { code: "sw", name: "Kiswahili", flag: "🇰🇪" },
+  { code: "ki", name: "Gikuyu", flag: "🇰🇪" },
+  { code: "luo", name: "Dholuo", flag: "🇰🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ]
+
+const GREETINGS: Record<string, string> = {
+  en: "Hello! I'm ready to talk.",
+  sw: "Habari",
+  ki: "Wimwega! Ndi tayari kwaria.",
+  luo: "Misawa! Antie tayari wuoyo.",
+  fr: "Bonjour! Je suis prêt à parler.",
+}
 
 export default function AdvisorPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       role: "ai",
-      text: "Jambo! I am AgriVoice, your AI farming assistant. How can I help you today? You can also take a photo of your crops to check for diseases!",
+      text: "Jambo! I am AgriTwin, your AI farming assistant. How can I help you today? You can also take a photo of your crops to check for diseases!",
       actions: ["Check my crop health", "Weather advice", "Pest control tips", "Scan plant for disease"],
     },
   ])
@@ -60,22 +69,17 @@ export default function AdvisorPage() {
   const continuousRecognitionRef = useRef<{ stop: () => void } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isSpeakingInProgressRef = useRef(false)
-  // When true, recognition callbacks should ignore results (prevents AI speech self-trigger)
   const recognitionPausedRef = useRef(false)
-  // Track last processed user utterance to avoid duplicates
   const lastUserRequestRef = useRef<{ text: string; ts: number } | null>(null)
-  // Reusable continuous recognition callbacks (stored as refs so they can be restarted)
   const continuousOnResultRef = useRef<((text: string, language: string) => void | Promise<void>) | null>(null)
   const continuousOnErrorRef = useRef<((error: any) => void) | null>(null)
   const continuousOnListeningRef = useRef<((isListening: boolean) => void) | null>(null)
   const recognitionWasActiveRef = useRef(false)
-  // Prevent overlapping or duplicate speak calls across async flows
   const aiSpeakLockRef = useRef<number>(0)
 
-  // Helper to (re)start the continuous recognizer using current callbacks
+  // Start continuous recognition helper
   const startContinuousRecognizer = async () => {
     try {
-      // Avoid starting a second recognizer if one is already active
       if (continuousRecognitionRef.current) {
         console.log("Continuous recognizer already running")
         return
@@ -99,30 +103,6 @@ export default function AdvisorPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
-
-  const detectTaskAssignment = (text: string): boolean => {
-    const lowerText = text.toLowerCase()
-    const assignmentKeywords = [
-      "assign",
-      "tell",
-      "have",
-      "ask",
-      "get",
-      "remind",
-    ]
-    const taskKeywords = [
-      "water",
-      "plant",
-      "fertilize",
-      "weed",
-      "harvest",
-      "spray",
-    ]
-
-    return assignmentKeywords.some((keyword) => lowerText.includes(keyword)) &&
-           (taskKeywords.some((keyword) => lowerText.includes(keyword)) ||
-            lowerText.includes("to "))
-  }
 
   const analyzeImage = async (
     file: File,
@@ -148,33 +128,26 @@ export default function AdvisorPage() {
   }
 
   const sendToAI = async (userText: string, imageAnalysisData?: string, autoSpeakResponse = false) => {
-    console.log('[advisor] sendToAI START', { userText: userText.slice(0, 140), autoSpeakResponse, ts: new Date().toISOString() })
     const normalized = userText.trim().toLowerCase()
     const now = Date.now()
-    // If same text was processed very recently, ignore to avoid duplicates
     if (lastUserRequestRef.current && lastUserRequestRef.current.text === normalized && (now - lastUserRequestRef.current.ts) < 5000) {
-      console.log("Duplicate user utterance detected, ignoring")
       return
     }
 
-    // Mark this request as the last processed
     lastUserRequestRef.current = { text: normalized, ts: now }
 
-    // Prevent duplicate calls while already processing
-    if (isLoading) {
-      console.log("Already processing a request, ignoring duplicate call")
-      return
-    }
+    if (isLoading) return
 
     setIsLoading(true)
 
     try {
-      // Check if this is a task assignment command
-      const isTaskAssignment = detectTaskAssignment(userText)
-      
-      // Translate to English if needed
+      // DIRECT_LANGUAGES are handled directly by the AI (no separate translation step)
+      const DIRECT_LANGUAGES = ["sw", "ki", "luo"]
+      const useDirectGen = DIRECT_LANGUAGES.includes(language)
+
+      // Translate to English if needed (and not using direct generation)
       let textToSend = userText
-      if (language !== "en") {
+      if (language !== "en" && !useDirectGen) {
         const translateRes = await fetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -183,49 +156,6 @@ export default function AdvisorPage() {
         if (translateRes.ok) {
           const { translatedText } = await translateRes.json()
           textToSend = translatedText
-        }
-      }
-
-      // If it's a task assignment, process it
-      if (isTaskAssignment) {
-        try {
-          const taskResponse = await fetch("/api/assign-task", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ voiceCommand: textToSend }),
-          })
-
-          const taskData = await taskResponse.json()
-
-          if (taskData.success) {
-            // Save the task to localStorage
-            const tasksData = localStorage.getItem("farmTeamTasks")
-            const tasks = tasksData ? JSON.parse(tasksData) : []
-            tasks.push(taskData.task)
-            localStorage.setItem("farmTeamTasks", JSON.stringify(tasks))
-
-            // Create activity log
-            const logsData = localStorage.getItem("farmActivityLogs")
-            const logs = logsData ? JSON.parse(logsData) : []
-            logs.push({
-              id: `log-${Date.now()}`,
-              taskId: taskData.task.id,
-              memberId: "user-1",
-              memberName: "Farm Owner",
-              action: "assigned",
-              timestamp: new Date().toISOString(),
-              details: `Assigned via voice command`,
-            })
-            localStorage.setItem("farmActivityLogs", JSON.stringify(logs))
-
-            toast.success(`Task assigned to ${taskData.memberName}!`, {
-              description: "They will be notified via SMS",
-            })
-          }
-
-          // Continue with AI response about the task
-        } catch (error) {
-          console.error("Task assignment error:", error)
         }
       }
 
@@ -239,6 +169,7 @@ export default function AdvisorPage() {
             { role: "user", text: textToSend },
           ],
           imageAnalysis: imageAnalysisData,
+          language: language, // Pass the target language to the API
         }),
       })
 
@@ -257,9 +188,9 @@ export default function AdvisorPage() {
 
       const message = data.message
 
-      // Translate response if needed
+      // Translate response if needed (and not using direct generation)
       let finalMessage = message
-      if (language !== "en") {
+      if (language !== "en" && !useDirectGen) {
         const translateRes = await fetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -277,27 +208,20 @@ export default function AdvisorPage() {
         text: finalMessage,
       }
       setMessages((prev) => [...prev, aiMsg])
-      console.log('[advisor] AI message appended', { preview: finalMessage.slice(0, 140), ts: new Date().toISOString() })
 
-      // Determine whether to speak: during a voice call ignore the global `autoSpeak` toggle
-      // Speak in voice mode only once per response. Outside voice mode, respect autoSpeak toggles.
       const shouldSpeak = isVoiceMode ? true : (autoSpeak || autoSpeakResponse)
 
-      // Auto-speak if allowed; use a ref to prevent duplicate speech calls
       if (shouldSpeak && !isSpeakingInProgressRef.current) {
-        // Additional lock to avoid multiple speak calls within a short window
         const now = Date.now()
         if (now - aiSpeakLockRef.current < 1000) {
-          console.log("AI speak locked, skipping duplicate speak")
+          // Skip
         } else {
           aiSpeakLockRef.current = now
           isSpeakingInProgressRef.current = true
 
-          // Cancel any ongoing browser speech first to prevent overlap
           try { window.speechSynthesis.cancel() } catch (e) { /** ignore */ }
           setIsSpeaking(false)
 
-          // Wait briefly for cancellation and for message to render
           await new Promise(resolve => setTimeout(resolve, 200))
 
           try {
@@ -306,24 +230,19 @@ export default function AdvisorPage() {
             console.error("Error in auto-speak:", error)
           } finally {
             isSpeakingInProgressRef.current = false
-            // update lock timestamp so subsequent speaks are allowed after a short cooldown
             aiSpeakLockRef.current = Date.now()
           }
         }
       }
     } catch (error) {
-      console.error("AI Error:", error)
       const aiMsg: Message = {
         id: Date.now() + 1,
         role: "ai",
         text: "I'm sorry, I'm having trouble connecting right now. Please check your internet connection and try again.",
       }
       setMessages((prev) => [...prev, aiMsg])
-      toast.error("Connection issue. Please try again.")
     } finally {
-      console.log('[advisor] sendToAI FINALLY (about to clear loading)', { userText: userText.slice(0, 80), ts: new Date().toISOString() })
       setIsLoading(false)
-      // allow re-processing same text after a short cooldown
       setTimeout(() => {
         if (lastUserRequestRef.current && (Date.now() - lastUserRequestRef.current.ts) > 5000) {
           lastUserRequestRef.current = null
@@ -337,7 +256,6 @@ export default function AdvisorPage() {
 
     const userText = inputValue.trim() || "Please analyze this image of my crop"
 
-    // Add user message with image if present
     const userMsg: Message = {
       id: Date.now(),
       role: "user",
@@ -349,10 +267,9 @@ export default function AdvisorPage() {
 
     let imageAnalysisData: string | undefined
 
-    // If there's an image, analyze it first
     if (selectedImage) {
       setIsAnalyzing(true)
-      toast("Analyzing your crop image...", { description: "This may take a moment" })
+      toast.info("Analyzing image...")
 
       const result = await analyzeImage(selectedImage)
       setIsAnalyzing(false)
@@ -360,7 +277,6 @@ export default function AdvisorPage() {
       if (result) {
         const { analysis, rawVision } = result
 
-        // Add analysis result message
         const analysisMsg: Message = {
           id: Date.now() + 0.5,
           role: "ai",
@@ -369,20 +285,17 @@ export default function AdvisorPage() {
         }
         setMessages((prev) => [...prev, analysisMsg])
 
-        // Prepare context for AI
         if (analysis && rawVision) {
           imageAnalysisData = `Plant Type: ${analysis.plantType || "Unknown"}, Condition: ${analysis.condition || "Unknown"}, Severity: ${analysis.severity || "Unknown"}, Symptoms: ${analysis.symptoms?.join(", ") || "None detected"}, Image Description: ${rawVision.caption}`
         }
       } else {
-        toast.error("Could not analyze the image. Please try again.")
+        toast.error("Could not analyze the image.")
       }
 
-      // Clear image after sending
       setSelectedImage(null)
       setImagePreview(null)
     }
 
-    // Send to AI for advice
     await sendToAI(userText, imageAnalysisData)
   }
 
@@ -401,7 +314,7 @@ export default function AdvisorPage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("Image too large", { description: "Please select an image under 10MB" })
+        toast.error("Image too large (max 10MB)")
         return
       }
 
@@ -411,15 +324,7 @@ export default function AdvisorPage() {
         setImagePreview(reader.result as string)
       }
       reader.readAsDataURL(file)
-      toast.success("Image selected", { description: "Send your message to analyze" })
-    }
-  }
-
-  const clearImage = () => {
-    setSelectedImage(null)
-    setImagePreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      toast.success("Image selected")
     }
   }
 
@@ -432,39 +337,12 @@ export default function AdvisorPage() {
       toast("Listening...", { description: `Speak in ${currentLang.name}` })
 
       recognitionRef.current = await startSpeechRecognition(
-        async (text, detectedLang) => {
+        async (text) => {
           setIsRecording(false)
-          
-          // Show what was heard
-          toast.success("Got it!", { description: text })
-          
-          // If not English, translate to English for better AI understanding
-          if (language !== "en") {
-            try {
-              const translateRes = await fetch("/api/translate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text, from: language, to: "en" }),
-              })
-              
-              if (translateRes.ok) {
-                const { translatedText } = await translateRes.json()
-                setInputValue(translatedText)
-                toast("Translated", { description: `"${text}" → "${translatedText}"` })
-              } else {
-                setInputValue(text)
-              }
-            } catch (error) {
-              console.error("Translation error:", error)
-              setInputValue(text)
-            }
-          } else {
-            setInputValue(text)
-          }
+          setInputValue(text)
         },
         () => {
           setIsRecording(false)
-          toast.error("Could not hear you", { description: "Please try again" })
         },
         language,
       )
@@ -473,230 +351,97 @@ export default function AdvisorPage() {
 
   const toggleVoiceMode = async () => {
     if (isVoiceMode) {
-      // Stop voice conversation mode
-      try {
-        continuousRecognitionRef.current?.stop()
-      } catch (e) {
-        console.warn("Error stopping continuous recognizer:", e)
-      } finally {
-        continuousRecognitionRef.current = null
-      }
+      try { continuousRecognitionRef.current?.stop() } catch (e) { /**/ } finally { continuousRecognitionRef.current = null }
       setIsVoiceMode(false)
       window.speechSynthesis.cancel()
       setIsSpeaking(false)
-      toast.info("Voice conversation ended", { description: "You can still type or use the mic button" })
+      toast.info("Voice conversation ended")
     } else {
-      // Start voice conversation mode
       setIsVoiceMode(true)
-      
-      // Greet the user when starting voice mode
-      const greeting = language === 'sw' 
-        ? "Habari! Niko tayari kuzungumza nawe. Niambie, nikusaidie namna gani leo?"
-        : language === 'fr'
-        ? "Bonjour! Je suis prêt à vous parler. Comment puis-je vous aider aujourd'hui?"
-        : "Hello! I'm ready to talk with you. How can I help you today?"
-      
-      toast.success("Voice conversation started", { 
-        description: `Speak in ${currentLang.name}. I'll respond automatically.`,
-        duration: 3000
-      })
-      
-      // Speak the greeting
+      toast.success("Voice conversation started")
+
       setIsSpeaking(true)
       try {
+        const greeting = GREETINGS[language] || GREETINGS["en"]
         await speakText(greeting, language)
-      } catch (error) {
-        console.error("Greeting speech error:", error)
       } finally {
         setIsSpeaking(false)
       }
 
-      // prepare continuous callbacks and start recognizer via helper
-      continuousOnResultRef.current = async (text, detectedLang) => {
-        console.log(`[advisor] continuousOnResult triggered at ${new Date().toISOString()} - text:`, text)
-        // Ignore recognition results while paused or when AI is speaking or while loading
-        if (recognitionPausedRef.current || isSpeaking || isLoading) {
-          console.log('[advisor] continuousOnResult skipped: paused/speaking/loading')
-          return
-        }
-
-        // Avoid immediately re-processing right after assistant spoke
-        if (Date.now() - aiSpeakLockRef.current < 1500) {
-          console.log('[advisor] continuousOnResult skipped: recent AI speak lock')
-          return
-        }
-
+      continuousOnResultRef.current = async (text) => {
+        if (recognitionPausedRef.current || isSpeaking || isLoading) return
+        if (Date.now() - aiSpeakLockRef.current < 1500) return
         if (!text.trim()) return
 
-        toast.success("Heard you", { description: text })
-
-        // Prevent the recognizer from processing speech while we handle this input
         recognitionPausedRef.current = true
         try {
-          // Add user message
-          console.log('[advisor] Adding user message from continuous recognizer:', text)
           const userMsg: Message = { id: Date.now(), role: "user", text }
           setMessages((prev) => [...prev, userMsg])
-
-          // Send to AI and auto-speak response
-          console.log('[advisor] Calling sendToAI from continuous recognizer')
           await sendToAI(text, undefined, true)
-          console.log('[advisor] sendToAI finished (continuous recognizer)')
         } finally {
-          // Small delay before resuming recognition to avoid picking up the AI voice
-          setTimeout(() => {
-            recognitionPausedRef.current = false
-          }, 300)
+          setTimeout(() => { recognitionPausedRef.current = false }, 300)
         }
       }
 
-      continuousOnErrorRef.current = (error) => {
-        console.error("Voice mode error:", error)
-        if (error !== 'no-speech') {
-          toast.error("Voice error", { description: "Restarting listening..." })
-        }
-      }
-
-      continuousOnListeningRef.current = (isListening) => {
-        if (!isListening && isVoiceMode) {
-          console.log("Recognition stopped, mode still active")
-        }
-      }
-
-      // Start recognizer using the shared helper
+      continuousOnErrorRef.current = () => { /* quiet error */ }
+      continuousOnListeningRef.current = () => { /* */ }
       await startContinuousRecognizer()
     }
   }
 
   const handleSpeak = async (text: string) => {
-    // Cancel any existing speech first to prevent overlap
     window.speechSynthesis.cancel()
-    
-    // If already speaking and user clicks to stop (not in voice mode)
     if (isSpeaking && !isVoiceMode) {
       setIsSpeaking(false)
       return
     }
 
-    // Clean markdown syntax for speech
-    const cleanText = text
-      // Remove bold and italic markers
-      .replace(/\*\*\*(.+?)\*\*\*/g, '$1')  // bold + italic
-      .replace(/\*\*(.+?)\*\*/g, '$1')      // bold
-      .replace(/\*(.+?)\*/g, '$1')          // italic
-      .replace(/_(.+?)_/g, '$1')            // italic underscore
-      // Remove headers
-      .replace(/^#{1,6}\s+/gm, '')
-      // Remove code blocks
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      // Remove links but keep text
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-      // Remove bullet points and list markers
-      .replace(/^\s*[-*+]\s+/gm, '')
-      .replace(/^\s*\d+\.\s+/gm, '')
-      // Remove blockquotes
-      .replace(/^\s*>\s+/gm, '')
-      // Clean up extra whitespace
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-
-    // Split text into sentences for more natural pauses
-    // This helps break down long responses into manageable chunks
-    const sentences = cleanText
-      .split(/(?<=[.!?])\s+/)
-      .filter(s => s.trim().length > 0)
+    const cleanText = text.replace(/[*_#`\[\]]/g, '')
 
     setIsSpeaking(true)
     try {
-      // If in voice mode, stop the continuous recognizer to avoid picking up AI speech
       if (isVoiceMode && continuousRecognitionRef.current) {
         try {
           recognitionWasActiveRef.current = true
           continuousRecognitionRef.current.stop()
-          // allow time for the recognizer to stop
           await new Promise((r) => setTimeout(r, 200))
-        } catch (e) {
-          console.warn("Failed to stop recognizer before speaking:", e)
-        } finally {
-          // Clear the ref so starting a new one later works reliably
-          continuousRecognitionRef.current = null
-        }
+        } catch (e) { /**/ } finally { continuousRecognitionRef.current = null }
       }
 
-      // Also mark recognition paused to be safe
       recognitionPausedRef.current = true
-
-      // Speak each sentence one at a time with a small pause between
-      for (let i = 0; i < sentences.length; i++) {
-        const sentence = sentences[i]
-        await speakText(sentence, language)
-        // Small pause between sentences for better comprehension
-        if (i < sentences.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 300))
-        }
-      }
+      await speakText(cleanText, language)
     } catch (error) {
-      console.error("Speech error:", error)
-      if (isVoiceMode) {
-        // Don't show error toast in voice mode, it's distracting
-        console.error("Speech failed in voice mode")
-      } else {
-        toast.error("Could not speak the message")
-      }
+      // ignore
     } finally {
       setIsSpeaking(false)
-      // Resume recognition after speaking
       recognitionPausedRef.current = false
 
       if (isVoiceMode && recognitionWasActiveRef.current) {
         try {
           await startContinuousRecognizer()
-        } catch (e) {
-          console.error("Failed to restart recognizer after speaking:", e)
-        } finally {
-          recognitionWasActiveRef.current = false
-        }
+        } catch (e) { /**/ } finally { recognitionWasActiveRef.current = false }
       }
     }
   }
 
   const currentLang = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0]
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case "severe":
-        return "bg-red-500 text-white"
-      case "moderate":
-        return "bg-yellow-500 text-white"
-      case "mild":
-        return "bg-orange-400 text-white"
-      case "healthy":
-        return "bg-green-500 text-white"
-      default:
-        return "bg-gray-400 text-white"
-    }
-  }
-
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8]">
-      <Header title="AgriVoice" />
+    <div className="flex flex-col h-screen bg-[#0f172a]">
+      <Header title="AgriTwin Advisor" />
 
-      <div className="flex items-center justify-between px-4 py-3 border-b border-green-200/50 bg-white/80 backdrop-blur-sm shadow-sm">
+      {/* Top Controls Bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-[#1e293b] border-b border-slate-700 shadow-sm z-10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 bg-white border-green-300 hover:bg-green-50 hover:border-green-400 transition-all">
-              <Globe className="h-4 w-4 text-green-600" />
+            <Button variant="ghost" size="sm" className="gap-2 text-slate-300 hover:text-[#22c55e] hover:bg-slate-700">
+              <Globe className="h-4 w-4" />
               <span className="font-medium">{currentLang.flag} {currentLang.name}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-48">
+          <DropdownMenuContent>
             {LANGUAGES.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onClick={() => setLanguage(lang.code)}
-                className={language === lang.code ? "bg-green-50 font-medium" : ""}
-              >
+              <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code)}>
                 <span className="text-lg mr-2">{lang.flag}</span> {lang.name}
               </DropdownMenuItem>
             ))}
@@ -707,328 +452,197 @@ export default function AdvisorPage() {
           <Button
             variant={isVoiceMode ? "default" : "outline"}
             size="sm"
-            className={`gap-2 transition-all ${
-              isVoiceMode 
-                ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg animate-pulse' 
-                : 'border-green-300 hover:bg-green-50'
-            }`}
+            className={`gap-2 transition-all rounded-full ${isVoiceMode
+              ? 'bg-red-500 hover:bg-red-600 text-white border-none animate-pulse'
+              : 'border-slate-600 text-[#22c55e] hover:bg-slate-700'
+              }`}
             onClick={toggleVoiceMode}
-            disabled={isLoading || isAnalyzing}
+            disabled={isLoading}
           >
-            {isVoiceMode ? (
-              <>
-                <PhoneOff className="h-4 w-4" />
-                <span className="hidden sm:inline">End Call</span>
-              </>
-            ) : (
-              <>
-                <Phone className="h-4 w-4" />
-                <span className="hidden sm:inline">Voice Chat</span>
-              </>
-            )}
+            {isVoiceMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isVoiceMode ? 'End Call' : 'Voice Chat'}</span>
           </Button>
 
           <Button
-            variant={autoSpeak ? "default" : "outline"}
-            size="sm"
-            className={`gap-2 transition-all ${autoSpeak ? 'bg-green-600 hover:bg-green-700 shadow-md' : 'border-green-300 hover:bg-green-50'}`}
+            variant="ghost"
+            size="icon"
+            className={autoSpeak ? 'text-[#22c55e]' : 'text-slate-500'}
             onClick={() => setAutoSpeak(!autoSpeak)}
           >
-            {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            <span className="hidden sm:inline">Auto-speak</span>
+            {autoSpeak ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-40">
-        {/* Date Divider */}
-        <div className="flex justify-center animate-in fade-in slide-in-from-top-2 duration-500">
-          <span className="text-xs font-semibold text-green-700 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-green-200">
-            Today • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      {/* Chat Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-32 scroll-smooth">
+        <div className="flex justify-center">
+          <span className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
+            Today • {new Date().toLocaleDateString()}
           </span>
         </div>
 
-        {/* Voice Mode Indicator */}
-        {isVoiceMode && (
-          <div className="flex justify-center animate-in fade-in slide-in-from-top-2 duration-500">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-2xl shadow-lg border-2 border-green-400 flex items-center gap-3 animate-pulse">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-4 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-1.5 h-4 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-1.5 h-4 bg-white rounded-full animate-bounce"></span>
-              </div>
-              <span className="text-sm font-bold">Voice Conversation Active - Speak Freely</span>
-              <Phone className="h-4 w-4" />
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, index) => (
-          <div 
-            key={msg.id} 
-            className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""} animate-in fade-in slide-in-from-bottom-3 duration-500`}
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-lg ${
-                msg.role === "ai" 
-                  ? "bg-gradient-to-br from-green-500 to-green-600 ring-2 ring-green-200" 
-                  : "bg-gradient-to-br from-amber-500 to-amber-600 ring-2 ring-amber-200"
-              }`}
+        <AnimatePresence mode="popLayout">
+          {messages.map((msg, index) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
             >
-              {msg.role === "ai" ? "🌾" : "👤"}
-            </div>
-            <div className={`space-y-2 max-w-[85%] ${msg.role === "user" ? "flex flex-col items-end" : ""}`}>
-              <Card
-                className={`border-none shadow-lg transition-all hover:shadow-xl ${
-                  msg.role === "ai"
-                    ? "bg-white rounded-tl-none"
-                    : "bg-gradient-to-br from-green-600 to-green-700 text-white rounded-tr-none shadow-green-500/30"
-                }`}
+              {/* Avatar */}
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm
+                    ${msg.role === "ai" ? "bg-[#1e293b] text-[#22c55e] border border-slate-700" : "bg-[#22c55e] text-[#0f172a]"}`}
               >
-                <CardContent className="p-4">
-                  {msg.image && (
-                    <div className="mb-3 rounded-xl overflow-hidden shadow-md">
-                      <Image
-                        src={msg.image || "/placeholder.svg"}
-                        alt="Uploaded crop"
-                        width={250}
-                        height={200}
-                        className="w-full max-w-[250px] h-auto object-cover"
-                      />
-                    </div>
-                  )}
+                {msg.role === "ai" ? <Sparkles className="h-4 w-4" /> : <span className="text-xs font-bold">ME</span>}
+              </div>
 
-                  <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${
-                    msg.role === "ai" 
-                      ? "prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:text-gray-700" 
-                      : "prose-headings:text-white prose-p:text-white prose-strong:text-white prose-ul:text-white prose-ol:text-white prose-li:text-white prose-a:text-green-100"
-                  }`}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        // Customize rendering for better chat appearance
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-1">{children}</ul>,
-                        ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>,
-                        li: ({ children }) => <li className="ml-1">{children}</li>,
-                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                        em: ({ children }) => <em className="italic">{children}</em>,
-                        h1: ({ children }) => <h1 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-base font-bold mb-2 mt-3 first:mt-0">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1 mt-2 first:mt-0">{children}</h3>,
-                        code: ({ inline, children }: any) => 
-                          inline ? (
-                            <code className={`px-1.5 py-0.5 rounded text-xs font-mono ${
-                              msg.role === "ai" 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-green-800 text-green-100"
-                            }`}>
-                              {children}
-                            </code>
-                          ) : (
-                            <code className={`block px-3 py-2 rounded-lg text-xs font-mono my-2 ${
-                              msg.role === "ai"
-                                ? "bg-gray-100 text-gray-800"
-                                : "bg-green-800 text-green-100"
-                            }`}>
-                              {children}
-                            </code>
-                          ),
-                        blockquote: ({ children }) => (
-                          <blockquote className={`border-l-4 pl-3 py-1 my-2 italic ${
-                            msg.role === "ai"
-                              ? "border-green-500 text-gray-600"
-                              : "border-green-300 text-green-100"
-                          }`}>
-                            {children}
-                          </blockquote>
-                        ),
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  </div>
-
-                  {msg.analysis && (
-                    <div className="mt-4 p-4 bg-green-50/50 backdrop-blur-sm rounded-xl space-y-3 border border-green-200">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-green-700">🌱 Plant:</span>
-                        <span className="text-xs font-bold text-green-900 bg-green-100 px-2 py-1 rounded-full">
-                          {msg.analysis.plantType || "Unknown"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-green-700">📊 Condition:</span>
-                        <span className="text-xs font-semibold text-green-900">{msg.analysis.condition || "Unknown"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-green-700">⚠️ Severity:</span>
-                        <span
-                          className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm ${getSeverityColor(msg.analysis.severity)}`}
-                        >
-                          {msg.analysis.severity || "Unknown"}
-                        </span>
-                      </div>
-                      {msg.analysis.symptoms && msg.analysis.symptoms.length > 0 && (
-                        <div className="pt-2 border-t border-green-200">
-                          <span className="text-xs font-semibold text-green-700 block mb-2">🔍 Symptoms:</span>
-                          <ul className="space-y-1.5">
-                            {msg.analysis.symptoms.map((symptom, idx) => (
-                              <li key={idx} className="text-xs flex items-start gap-2 text-green-900">
-                                <span className="text-green-600 font-bold">•</span>
-                                <span className="flex-1">{symptom}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {msg.actions && (
-                    <div className="mt-4 flex gap-2 flex-wrap">
-                      {msg.actions.map((action) => (
-                        <Button
-                          key={action}
-                          size="sm"
-                          variant="secondary"
-                          className="h-9 text-xs rounded-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-300 shadow-sm hover:shadow-md transition-all"
-                          onClick={() => handleActionClick(action)}
-                        >
-                          {action === "Scan plant for disease" && <Camera className="h-3 w-3 mr-1.5" />}
-                          {action}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              {msg.role === "ai" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 text-green-700 hover:text-green-800 hover:bg-green-50 rounded-full"
-                  onClick={() => handleSpeak(msg.text)}
+              {/* Bubble */}
+              <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`rounded-2xl px-5 py-3 shadow-sm text-sm leading-relaxed
+                        ${msg.role === "ai"
+                    ? "bg-[#1e293b] text-slate-200 rounded-tl-none border border-slate-700"
+                    : "bg-[#22c55e] text-[#0f172a] font-medium rounded-tr-none shadow-lg shadow-green-900/10"}`}
                 >
-                  <Volume2 className="h-3.5 w-3.5 mr-1.5" />
-                  <span className="text-xs font-medium">Listen</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+                  {msg.image && (
+                    <div className="mb-3 rounded-lg overflow-hidden border border-white/20">
+                      <Image src={msg.image} alt="Upload" width={200} height={150} className="w-full h-auto object-cover" />
+                    </div>
+                  )}
 
-        {(isLoading || isAnalyzing) && (
-          <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold shrink-0 shadow-lg ring-2 ring-green-200">
-              🌾
-            </div>
-            <Card className="rounded-tl-none border-none bg-white shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  {isAnalyzing && <span className="text-xs font-medium text-green-700">Analyzing image...</span>}
-                  <div className="flex gap-1.5">
-                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce"></span>
-                  </div>
+                  {msg.role === 'ai' ? (
+                    <div className="prose prose-sm max-w-none prose-p:text-slate-300 prose-headings:text-slate-200 prose-strong:text-white prose-a:text-[#22c55e]">
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p>{msg.text}</p>
+                  )}
+
+                  {/* Analysis Card */}
+                  {msg.analysis && (
+                    <div className="mt-4 bg-slate-800/50 rounded-xl p-3 border border-slate-700 w-full text-left">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`h-2 w-2 rounded-full ${msg.analysis.severity.toLowerCase() === 'healthy' ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                        <span className="font-bold text-slate-200 capitalize">{msg.analysis.plantType}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                        <div className="bg-[#0f172a] p-2 rounded border border-slate-700">
+                          <p className="text-slate-500">Condition</p>
+                          <p className="font-medium text-slate-200">{msg.analysis.condition}</p>
+                        </div>
+                        <div className="bg-[#0f172a] p-2 rounded border border-slate-700">
+                          <p className="text-slate-500">Confidence</p>
+                          <p className="font-medium text-slate-200">{msg.analysis.confidence}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        <span className="font-medium">Symptoms:</span> {msg.analysis.symptoms.join(", ")}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
+                {/* Suggested Actions chips */}
+                {msg.actions && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {msg.actions.map((action, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleActionClick(action)}
+                        className="bg-slate-800 hover:bg-slate-700 text-[#22c55e] text-xs px-3 py-1.5 rounded-full transition-colors border border-slate-700 hover:border-[#22c55e]"
+                      >
+                        {action}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {isLoading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+            <div className="h-8 w-8 rounded-full bg-[#1e293b] flex items-center justify-center shrink-0 border border-slate-700">
+              <Sparkles className="h-4 w-4 text-[#22c55e]" />
+            </div>
+            <div className="bg-[#1e293b] px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2 border border-slate-700">
+              <span className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-bounce [animation-delay:-0.3s]" />
+            </div>
+          </motion.div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {imagePreview && (
-        <div className="fixed bottom-36 left-0 right-0 px-4 z-10 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="max-w-md mx-auto bg-white border-2 border-green-300 rounded-2xl p-3 flex items-center gap-3 shadow-2xl shadow-green-500/30">
-            <div className="relative h-20 w-20 rounded-xl overflow-hidden shrink-0 ring-2 ring-green-400">
-              <Image src={imagePreview || "/placeholder.svg"} alt="Selected" fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate text-green-900">{selectedImage?.name}</p>
-              <p className="text-xs text-green-700 font-medium">Ready to analyze • Tap send</p>
-            </div>
-            <Button size="icon" variant="ghost" className="shrink-0 hover:bg-red-50 hover:text-red-600 rounded-full" onClick={clearImage}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Input Area */}
-      <div
-        className={`fixed ${imagePreview ? "bottom-16" : "bottom-16"} left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent backdrop-blur-sm border-t border-green-200/50 z-10`}
-      >
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={handleImageSelect}
-        />
-
-        <div className="relative flex items-center gap-2.5 max-w-2xl mx-auto">
-          <Button
-            size="icon"
-            variant={isRecording ? "destructive" : "outline"}
-            className={`shrink-0 h-13 w-13 rounded-full transition-all shadow-lg ${
-              isRecording 
-                ? 'animate-pulse shadow-red-500/50 bg-gradient-to-br from-red-500 to-red-600' 
-                : 'bg-white border-2 border-green-300 hover:border-green-500 hover:bg-green-50 hover:scale-110'
-            }`}
-            onClick={toggleRecording}
-            disabled={isLoading || isAnalyzing}
-          >
-            {isRecording ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mic className="h-6 w-6 text-green-600" />}
-          </Button>
+      <div className="bg-[#1e293b] border-t border-slate-700 p-4 pb-24 z-20">
+        <div className="max-w-4xl mx-auto flex items-end gap-2 bg-[#0f172a] p-2 rounded-3xl border border-slate-700 focus-within:border-[#22c55e] focus-within:ring-1 focus-within:ring-[#22c55e] transition-all shadow-sm">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+          />
 
           <Button
+            variant="ghost"
             size="icon"
-            variant="outline"
-            className={`shrink-0 h-13 w-13 rounded-full bg-white border-2 transition-all shadow-lg hover:scale-110 ${
-              selectedImage 
-                ? 'border-green-500 bg-green-50' 
-                : 'border-green-300 hover:border-green-500 hover:bg-green-50'
-            }`}
+            className="rounded-full text-slate-400 hover:text-[#22c55e] hover:bg-slate-800 h-10 w-10 shrink-0"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading || isAnalyzing}
           >
-            {selectedImage ? <ImageIcon className="h-6 w-6 text-green-600" /> : <Camera className="h-6 w-6 text-green-600" />}
+            <ImageIcon className="h-5 w-5" />
           </Button>
 
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder={selectedImage ? "Describe your concern..." : "Ask me anything about farming..."}
-              className="w-full h-13 pl-5 pr-4 rounded-full border-2 border-green-300 bg-white text-sm font-medium focus:outline-none focus:ring-4 focus:ring-green-500/20 focus:border-green-500 shadow-lg transition-all placeholder:text-green-600/50"
+          <div className="flex-1 min-w-0">
+            {imagePreview && (
+              <div className="relative inline-block mb-2 ml-2">
+                <Image src={imagePreview} alt="Preview" width={48} height={48} className="rounded-lg object-cover border border-slate-600" />
+                <button onClick={() => { setSelectedImage(null); setImagePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                  <span className="sr-only">Remove</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+            )}
+
+            <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !isLoading && !isAnalyzing && handleSend()}
-              disabled={isLoading || isAnalyzing}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
+              placeholder={isRecording ? "Listening..." : "Ask anything about your farm..."}
+              className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-32 py-2.5 px-2 text-slate-200 placeholder:text-slate-500"
+              rows={1}
             />
           </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`rounded-full h-10 w-10 shrink-0 transition-colors ${isRecording ? 'bg-red-500/10 text-red-500 animate-pulse' : 'text-slate-400 hover:text-[#22c55e] hover:bg-slate-800'}`}
+            onClick={toggleRecording}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+
           <Button
             size="icon"
-            className={`shrink-0 h-13 w-13 rounded-full shadow-lg transition-all ${
-              (!inputValue.trim() && !selectedImage) || isLoading || isAnalyzing
-                ? 'bg-gray-300'
-                : 'bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:scale-110 hover:shadow-xl hover:shadow-green-500/50'
-            }`}
+            className={`rounded-full h-10 w-10 shrink-0 shadow-md transition-all ${!inputValue.trim() && !selectedImage ? 'bg-slate-700 cursor-not-allowed text-slate-500' : 'bg-[#22c55e] hover:bg-[#16a34a] text-[#0f172a] hover:scale-105'}`}
             onClick={handleSend}
-            disabled={(!inputValue.trim() && !selectedImage) || isLoading || isAnalyzing}
+            disabled={!inputValue.trim() && !selectedImage}
           >
-            {isLoading || isAnalyzing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-5 w-5" />}
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
       </div>
 
       <BottomNav />
-    </div>
+    </div >
   )
 }

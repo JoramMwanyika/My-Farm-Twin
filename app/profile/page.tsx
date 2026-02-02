@@ -4,12 +4,13 @@ import { useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Card, CardContent } from "@/components/ui/card"
-import { User, Globe, ChevronRight, LogOut, Settings, Bell, PenLine } from "lucide-react"
+import { User, Globe, ChevronRight, LogOut, Settings, Bell, PenLine, Shield, HelpCircle } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { motion } from "framer-motion"
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState({
     name: "Samuel K.",
     location: "Kiambu, Kenya",
+    role: "Smallholder Farmer",
+    email: "samuel.k@agrivoice.demo"
   })
   const [tempProfile, setTempProfile] = useState(profile)
 
@@ -53,148 +56,241 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7FFF3] via-[#F0FDF4] to-[#FEFCE8] pb-20">
-      <Header title="Profile" />
+    <div className="min-h-screen bg-[#f0efe9] pb-24">
+      <Header title="My Profile" />
 
-      <main className="container px-4 py-6 space-y-6">
+      <main className="container px-4 py-6 space-y-6 max-w-4xl mx-auto">
         {/* User Card */}
-        <div className="flex items-center gap-4 py-6 px-4 bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg border-2 border-green-200 relative animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center border-4 border-white shadow-xl overflow-hidden">
-            <User className="h-10 w-10 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-serif font-bold text-green-900">{profile.name}</h2>
-            <p className="text-green-700 font-medium">Smallholder Farmer</p>
-            <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
-              📍 {profile.location}
-            </p>
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1f16] to-[#14532d] shadow-xl p-6 text-white"
+        >
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#c0ff01]/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#4ade80]/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none" />
 
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="absolute right-4 top-6 hover:bg-green-100 rounded-full"
-                onClick={() => setTempProfile(profile)}
-              >
-                <PenLine className="h-5 w-5 text-green-600" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Profile</DialogTitle>
-                <DialogDescription>Update your personal information.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={tempProfile.name}
-                    onChange={(e) => setTempProfile({ ...tempProfile, name: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={tempProfile.location}
-                    onChange={(e) => setTempProfile({ ...tempProfile, location: e.target.value })}
-                  />
-                </div>
+          <div className="relative z-10 flex gap-5 items-start">
+            <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-[#c0ff01] to-[#4ade80] p-[2px] shadow-lg shadow-black/20">
+              <div className="w-full h-full rounded-[14px] bg-[#0a1f16] flex items-center justify-center overflow-hidden">
+                <User className="h-10 w-10 text-[#c0ff01]" />
               </div>
-              <DialogFooter>
-                <Button onClick={handleSaveProfile} className="bg-green-600 hover:bg-green-700">Save Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
 
-        {/* Settings List */}
-        <Card className="shadow-lg border-2 border-green-200 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '100ms' }}>
-          <CardContent className="p-0 divide-y divide-green-100">
-            <Dialog open={isLanguageOpen} onOpenChange={setIsLanguageOpen}>
-              <DialogTrigger asChild>
-                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-green-50 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                      <Globe className="h-5 w-5 text-green-600" />
+            <div className="flex-1 pt-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-3xl font-serif font-bold text-white tracking-wide">{profile.name}</h2>
+                  <p className="text-[#c0ff01] font-medium text-sm mb-1">{profile.role}</p>
+                </div>
+                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                      onClick={() => setTempProfile(profile)}
+                    >
+                      <PenLine className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="font-serif text-2xl">Edit Profile</DialogTitle>
+                      <DialogDescription>Update your personal information visible on AgriTwin.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={tempProfile.name}
+                          onChange={(e) => setTempProfile({ ...tempProfile, name: e.target.value })}
+                          className="focus-visible:ring-[#14532d]"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          value={tempProfile.location}
+                          onChange={(e) => setTempProfile({ ...tempProfile, location: e.target.value })}
+                          className="focus-visible:ring-[#14532d]"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleSaveProfile} className="bg-[#14532d] text-white hover:bg-[#0a1f16]">Save Changes</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-medium backdrop-blur-sm flex items-center gap-1.5">
+                  📍 {profile.location}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-medium backdrop-blur-sm flex items-center gap-1.5">
+                  📧 {profile.email}
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Settings Groups */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider ml-2">Preferences</h3>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-0 divide-y divide-gray-100">
+                <Dialog open={isLanguageOpen} onOpenChange={setIsLanguageOpen}>
+                  <DialogTrigger asChild>
+                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-[#e6f4ea] flex items-center justify-center group-hover:bg-[#dcefe3] transition-colors">
+                          <Globe className="h-5 w-5 text-[#14532d]" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Language</p>
+                          <p className="text-xs text-gray-500">
+                            Current: <span className="font-medium text-gray-800">{currentLang.flag} {currentLang.name}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="font-serif">Select Language</DialogTitle>
+                      <DialogDescription>Choose your preferred language for the interface and AI assistant.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-4">
+                      {LANGUAGES.map((lang) => (
+                        <Button
+                          key={lang.code}
+                          variant={language === lang.code ? "default" : "outline"}
+                          className={`justify-start gap-4 h-14 ${language === lang.code
+                              ? 'bg-[#14532d] hover:bg-[#0a1f16] text-white border-transparent'
+                              : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          onClick={() => handleLanguageChange(lang.code)}
+                        >
+                          <span className="text-2xl">{lang.flag}</span>
+                          <span className="text-base font-medium">{lang.name}</span>
+                          {language === lang.code && <div className="ml-auto w-2 h-2 rounded-full bg-[#c0ff01]" />}
+                        </Button>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <div className="flex items-center justify-between p-4 group">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-[#e6f4ea] flex items-center justify-center group-hover:bg-[#dcefe3] transition-colors">
+                      <Bell className="h-5 w-5 text-[#14532d]" />
                     </div>
                     <div>
-                      <p className="font-semibold text-green-900">Language</p>
-                      <p className="text-xs text-green-600">
-                        {currentLang.flag} {currentLang.name}
-                      </p>
+                      <p className="font-semibold text-gray-900">Notifications</p>
+                      <p className="text-xs text-gray-500">Weather alerts & task reminders</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-green-600 group-hover:translate-x-1 transition-transform" />
+                  <Switch
+                    checked={notifications}
+                    onCheckedChange={(checked) => {
+                      setNotifications(checked)
+                      toast.success(checked ? "Notifications enabled" : "Notifications disabled")
+                    }}
+                    className="data-[state=checked]:bg-[#14532d]"
+                  />
                 </div>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Select Language</DialogTitle>
-                  <DialogDescription>Choose your preferred language for AgriVoice.</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-2 py-4">
-                  {LANGUAGES.map((lang) => (
-                    <Button
-                      key={lang.code}
-                      variant={language === lang.code ? "default" : "outline"}
-                      className={`justify-start gap-3 h-12 ${language === lang.code ? 'bg-green-600 hover:bg-green-700' : 'border-green-300 hover:bg-green-50'}`}
-                      onClick={() => handleLanguageChange(lang.code)}
-                    >
-                      <span className="text-xl">{lang.flag}</span>
-                      {lang.name}
-                    </Button>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-            <div className="flex items-center justify-between p-4 hover:bg-green-50 transition-colors group">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                  <Bell className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900">Notifications</p>
-                  <p className="text-xs text-green-600">Alerts & reminders</p>
-                </div>
-              </div>
-              <Switch
-                checked={notifications}
-                onCheckedChange={(checked) => {
-                  setNotifications(checked)
-                  toast.success(checked ? "Notifications enabled" : "Notifications disabled")
-                }}
-              />
-            </div>
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider ml-2 mt-6">Support & Security</h3>
 
-            <div
-              className="flex items-center justify-between p-4 cursor-pointer hover:bg-green-50 transition-colors group"
-              onClick={() => toast.info("App settings coming soon")}
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                  <Settings className="h-5 w-5 text-green-600" />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-0 divide-y divide-gray-100">
+                <div
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors group"
+                  onClick={() => toast.info("Privacy settings coming soon")}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                      <Shield className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Privacy & Security</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <div>
-                  <p className="font-semibold text-green-900">App Settings</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-green-600 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Button
-          variant="outline"
-          className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border-2 border-red-300 shadow-md hover:shadow-lg transition-all"
-          onClick={() => toast.info("Sign out functionality coming soon")}
+                <div
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors group"
+                  onClick={() => toast.info("Help center coming soon")}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                      <HelpCircle className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Help & Support</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+
+                <div
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors group"
+                  onClick={() => toast.info("App settings coming soon")}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                      <Settings className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">App Settings</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="pt-4"
         >
-          <LogOut className="h-4 w-4" /> Sign Out
-        </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border border-red-200 shadow-sm h-12 text-base font-medium rounded-xl"
+            onClick={() => toast.info("Sign out functionality coming soon")}
+          >
+            <LogOut className="h-5 w-5" /> Sign Out
+          </Button>
+
+          <div className="text-center mt-6 text-xs text-gray-400">
+            <p>AgriTwin v0.1.0 (Beta)</p>
+          </div>
+        </motion.div>
 
         {/* Bottom Navigation */}
         <BottomNav />
