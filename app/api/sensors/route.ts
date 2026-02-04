@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const lang = searchParams.get('lang') || 'en';
+
     try {
         // Fetch unique block IDs first
         // Since distinct is limited in some SQLite versions via Prisma, we'll fetch latest readings
@@ -17,7 +20,7 @@ export async function GET(req: NextRequest) {
 
         if (readings.length === 0) {
             // Return seeded/simulated data if DB is empty
-            return NextResponse.json(generateSimulatedData());
+            return NextResponse.json(generateSimulatedData(lang));
         }
 
         // Dedup to get latest per blockId
@@ -31,8 +34,8 @@ export async function GET(req: NextRequest) {
 
         const blocks = Array.from(latestMap.values()).map(r => ({
             id: r.blockId,
-            name: r.blockName,
-            healthStatus: r.healthStatus,
+            name: getLocalizedBlockName(r.blockName, lang),
+            healthStatus: getLocalizedStatus(r.healthStatus, lang),
             progress: r.progress,
             moisture: r.moisture,
             temp: r.temp,
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         console.error("DB Error:", error);
         // Fallback to simulation on error
-        return NextResponse.json(generateSimulatedData());
+        return NextResponse.json(generateSimulatedData(lang));
     }
 }
 
@@ -79,30 +82,56 @@ export async function POST(req: NextRequest) {
     }
 }
 
-function generateSimulatedData() {
+function getLocalizedBlockName(name: string, lang: string): string {
+    if (lang !== 'sw') return name;
+
+    // Simple mapping for demo purposes
+    if (name.includes("Maize")) return name.replace("Maize", "Mahindi").replace("Block", "Shamba");
+    if (name.includes("Beans")) return name.replace("Beans", "Maharagwe").replace("Block", "Shamba");
+    if (name.includes("Greenhouse")) return "Kitalu cha Mboga";
+
+    return name;
+}
+
+function getLocalizedStatus(status: string, lang: string): string {
+    if (lang !== 'sw') return status;
+
+    const map: Record<string, string> = {
+        'healthy': 'afya njema',
+        'warning': 'tahadhari',
+        'critical': 'hatari',
+        'good': 'nzuri'
+    };
+
+    return map[status.toLowerCase()] || status;
+}
+
+function generateSimulatedData(lang: string = 'en') {
     const now = Date.now();
+    const isSwahili = lang === 'sw';
+
     return {
         blocks: [
             {
                 id: 1,
-                name: "Block A - Maize (Simulated DB)",
-                healthStatus: "healthy",
+                name: isSwahili ? "Shamba A - Mahindi (Simulated DB)" : "Block A - Maize (Simulated DB)",
+                healthStatus: isSwahili ? "afya njema" : "healthy",
                 progress: 60,
                 moisture: Math.floor(45 + Math.sin(now / 10000) * 5),
                 temp: Math.floor(22 + Math.cos(now / 10000) * 3),
             },
             {
                 id: 2,
-                name: "Block B - Beans (Simulated DB)",
-                healthStatus: "warning",
+                name: isSwahili ? "Shamba B - Maharagwe (Simulated DB)" : "Block B - Beans (Simulated DB)",
+                healthStatus: isSwahili ? "tahadhari" : "warning",
                 progress: 85,
                 moisture: Math.floor(30 + Math.sin(now / 12000) * 5),
                 temp: Math.floor(24 + Math.cos(now / 12000) * 4),
             },
             {
                 id: 3,
-                name: "Greenhouse (Simulated DB)",
-                healthStatus: "healthy",
+                name: isSwahili ? "Kitalu cha Mboga (Simulated DB)" : "Greenhouse (Simulated DB)",
+                healthStatus: isSwahili ? "afya njema" : "healthy",
                 progress: 50,
                 moisture: 65,
                 temp: 26,

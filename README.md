@@ -11,10 +11,17 @@
 
 ---
 
-## 📋 Hackathon Submission
+### Problem Statement
+**AgriVoice AI** addresses the critical challenge of limited access to agricultural expertise for smallholder farmers across Africa. Unlike traditional farming apps that require literacy and smartphone familiarity, many farmers struggle with:
+1.  **Language Barriers**: Existing apps often lack support for local dialects like Sheng or specific Kiswahili variations.
+2.  **Literacy Requirements**: Text-heavy interfaces exclude farmers with lower literacy levels.
+3.  **Connectivity Issues**: Reliance on constant high-speed internet makes many tools unusable in remote areas.
 
-### Project Overview
-**AgriVoice AI** addresses the critical challenge of limited access to agricultural expertise for smallholder farmers across Africa. Unlike traditional farming apps that require literacy and smartphone familiarity, AgriVoice is built around **natural voice conversation**. Farmers simply speak their questions in Kiswahili, Sheng, or English, and receive expert AI-powered guidance through voice responses—making cutting-edge agricultural technology accessible to everyone, regardless of education level.
+### Solution: AgriVoice AI
+AgriVoice is built around **natural voice conversation**. Farmers simply speak their questions in Kiswahili, Sheng, or English, and receive expert AI-powered guidance through voice responses—making cutting-edge agricultural technology accessible to everyone, regardless of education level. The solution provides:
+-   **Voice-First Interface**: Removes the need for typing or reading complex text.
+-   **Offline-Ready Capabilities**: Essential features work even with poor connectivity.
+-   **Culturally Contextualized Advice**: AI trained to understand local farming contexts and languages.
 
 ### Why AgriVoice AI is Unique
 
@@ -200,7 +207,22 @@
    AZURE_VISION_KEY=your-computer-vision-key
    ```
 
-4. **Run the development server:**
+
+
+4. **Setup the Database:**
+   
+   Initialize the SQLite database and generate the Prisma client:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+   
+   (Optional) Seed the database with initial data:
+   ```bash
+   npx tsx prisma/seed.ts
+   ```
+
+5. **Run the development server:**
    ```bash
    npm run dev
    # or
@@ -517,6 +539,7 @@ Create a `.env.local` file with these variables:
 | `AZURE_SPEECH_REGION` | Speech region (eastus) | ✅ Yes |
 | `AZURE_VISION_ENDPOINT` | Computer Vision endpoint | ✅ Yes |
 | `AZURE_VISION_KEY` | Computer Vision key | ✅ Yes |
+| `DATABASE_URL` | Prisma DB URL (default: "file:./dev.db") | ✅ Yes |
 | `OPENWEATHER_API_KEY` | OpenWeatherMap API key | ⚠️ Optional |
 
 **Note**: Weather API has fallback mock data if key not provided.
