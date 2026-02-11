@@ -41,75 +41,155 @@ export async function speakText(text: string, language = "en"): Promise<void> {
 
   console.log(`[speech] speakText START (${new Date(now).toISOString()}):`, normalized.slice(0, 120))
 
-  return new Promise(async (resolve, reject) => {
-    try {
-      const config = await getSpeechConfig()
-      if (!config) {
-        // Fallback to browser speech synthesis
-        const res = await speakTextBrowser(text, language)
-        console.log(`[speech] speakText END (browser) (${new Date().toISOString()})`)
-        return resolve(res)
-      }
+  try {
+    // Try Azure TTS first via API
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language }),
+    });
 
-      const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(config.token, config.region)
-      const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
-      speechConfig.speechSynthesisVoiceName = langSettings.voice
+    if (response.ok) {
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
 
-      const audioConfig = sdk.AudioConfig.fromDefaultSpeakerOutput()
-      const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig)
-
-      synthesizer.speakTextAsync(
-        text,
-        (result) => {
-          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-            synthesizer.close()
-            console.log(`[speech] speakText END (sdk) (${new Date().toISOString()})`)
-            resolve()
-          } else {
-            synthesizer.close()
-            console.warn(`[speech] speakText failed (sdk) reason=${result.reason}`)
-            reject(new Error("Speech synthesis failed"))
-          }
-        },
-        (error) => {
-          synthesizer.close()
-          console.error(`[speech] speakText error (sdk):`, error)
-          reject(error)
-        },
-      )
-    } catch (error) {
-      // Fallback to browser speech synthesis
-      try {
-        await speakTextBrowser(text, language)
-        console.log(`[speech] speakText END (fallback) (${new Date().toISOString()})`)
-        resolve()
-      } catch (e) {
-        console.error(`[speech] speakText fallback error:`, e)
-        reject(e)
-      }
+      return new Promise<void>((resolve, reject) => {
+        audio.onended = () => {
+          console.log(`[speech] speakText END (api/tts) (${new Date().toISOString()})`)
+          resolve()
+        };
+        audio.onerror = (e) => {
+          console.error(`[speech] speakText error (api/tts):`, e)
+          reject(e)
+        };
+        audio.play();
+      });
     }
-  })
-}
+  } catch (e) {
+    console.warn("[speech] Azure TTS failed via /api/tts, falling back to browser:", e);
+  }
 
-// Fallback browser-based speech synthesis
-function speakTextBrowser(text: string, language = "en"): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (!("speechSynthesis" in window)) {
-      reject(new Error("Speech synthesis not supported"))
-      return
+  // Fallback to Browser Speech Synthesis
+  return new Promise<void>((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('Speech synthesis not supported'));
+      return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text)
+    const utterance = new SpeechSynthesisUtterance(text);
     const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
     utterance.lang = langSettings.speech
     utterance.rate = 0.9
-    utterance.pitch = 1
 
-    utterance.onend = () => resolve()
-    utterance.onerror = (e) => reject(e)
+    utterance.onend = () => {
+      console.log(`[speech] speakText END (browser) (${new Date().toISOString()})`)
+      resolve()
+    };
+    utterance.onerror = (error) => {
+      console.error(`[speech] speakText error (browser):`, error)
+      reject(error)
+    };
 
-    window.speechSynthesis.speak(utterance)
-  })
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+// Fallback browser-based speech recognition
+function startBrowserRecognition(
+  onResult: (text: string, language: string) => void,
+  onError: (error: string) => void,
+  language = "en",
+): { stop: () => void } | null {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+  if (!SpeechRecognition) {
+    onError("Speech recognition not supported in this browser")
+    return null
+  }
+
+  const recognition = new SpeechRecognition()
+  const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
+
+  recognition.lang = langSettings.speech
+  recognition.interimResults = false
+  recognition.maxAlternatives = 1
+
+  recognition.onresult = (event: any) => {
+    const transcript = event.results[0][0].transcript
+    onResult(transcript, language)
+  }
+
+  recognition.onerror = (event: any) => {
+    onError(event.error)
+  }
+
+  recognition.start()
+
+  return {
+    stop: () => recognition.stop(),
+  }
+}
+
+// Browser-based continuous recognition
+function startBrowserContinuousRecognition(
+  onResult: (text: string, language: string) => void,
+  onError: (error: string) => void,
+  onListening: (isListening: boolean) => void,
+  language = "en",
+): { stop: () => void } | null {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+  if (!SpeechRecognition) {
+    onError("Speech recognition not supported in this browser")
+    return null
+  }
+
+  const recognition = new SpeechRecognition()
+  const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
+
+  recognition.lang = langSettings.speech
+  recognition.continuous = true
+  recognition.interimResults = false
+  recognition.maxAlternatives = 1
+
+  recognition.onstart = () => {
+    onListening(true)
+  }
+
+  recognition.onend = () => {
+    onListening(false)
+  }
+
+  recognition.onresult = (event: any) => {
+    const last = event.results.length - 1
+    const transcript = event.results[last][0].transcript
+    if (transcript.trim()) {
+      onResult(transcript, language)
+    }
+  }
+
+  recognition.onerror = (event: any) => {
+    if (event.error !== 'no-speech') {
+      onError(event.error)
+    }
+  }
+
+  try {
+    recognition.start()
+  } catch (error) {
+    onError("Could not start recognition")
+  }
+
+  return {
+    stop: () => {
+      try {
+        recognition.stop()
+      } catch (e) {
+        console.error("Error stopping recognition:", e)
+      }
+    },
+  }
 }
 
 export async function startSpeechRecognition(
@@ -157,7 +237,6 @@ export async function startSpeechRecognition(
   }
 }
 
-// Continuous speech recognition for dialogue
 export async function startContinuousRecognition(
   onResult: (text: string, language: string) => void,
   onError: (error: string) => void,
@@ -227,102 +306,5 @@ export async function startContinuousRecognition(
     }
   } catch (error) {
     return startBrowserContinuousRecognition(onResult, onError, onListening, language)
-  }
-}
-
-// Browser-based continuous recognition
-function startBrowserContinuousRecognition(
-  onResult: (text: string, language: string) => void,
-  onError: (error: string) => void,
-  onListening: (isListening: boolean) => void,
-  language = "en",
-): { stop: () => void } | null {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-  if (!SpeechRecognition) {
-    onError("Speech recognition not supported in this browser")
-    return null
-  }
-
-  const recognition = new SpeechRecognition()
-  const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
-
-  recognition.lang = langSettings.speech
-  recognition.continuous = true
-  recognition.interimResults = false
-  recognition.maxAlternatives = 1
-
-  recognition.onstart = () => {
-    onListening(true)
-  }
-
-  recognition.onend = () => {
-    onListening(false)
-  }
-
-  recognition.onresult = (event: any) => {
-    const last = event.results.length - 1
-    const transcript = event.results[last][0].transcript
-    if (transcript.trim()) {
-      onResult(transcript, language)
-    }
-  }
-
-  recognition.onerror = (event: any) => {
-    if (event.error !== 'no-speech') {
-      onError(event.error)
-    }
-  }
-
-  try {
-    recognition.start()
-  } catch (error) {
-    onError("Could not start recognition")
-  }
-
-  return {
-    stop: () => {
-      try {
-        recognition.stop()
-      } catch (e) {
-        console.error("Error stopping recognition:", e)
-      }
-    },
-  }
-}
-
-// Fallback browser-based speech recognition
-function startBrowserRecognition(
-  onResult: (text: string, language: string) => void,
-  onError: (error: string) => void,
-  language = "en",
-): { stop: () => void } | null {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-  if (!SpeechRecognition) {
-    onError("Speech recognition not supported in this browser")
-    return null
-  }
-
-  const recognition = new SpeechRecognition()
-  const langSettings = LANGUAGE_MAP[language] || LANGUAGE_MAP.en
-
-  recognition.lang = langSettings.speech
-  recognition.interimResults = false
-  recognition.maxAlternatives = 1
-
-  recognition.onresult = (event: any) => {
-    const transcript = event.results[0][0].transcript
-    onResult(transcript, language)
-  }
-
-  recognition.onerror = (event: any) => {
-    onError(event.error)
-  }
-
-  recognition.start()
-
-  return {
-    stop: () => recognition.stop(),
   }
 }

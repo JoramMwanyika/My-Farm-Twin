@@ -18,7 +18,9 @@ import {
   Sun,
   Wind,
   Thermometer,
-  ArrowUpRight
+  ArrowUpRight,
+  Box,
+  Map as MapIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -41,6 +43,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from 'next/dynamic';
+
+const FarmScene = dynamic(() => import('@/components/farm/farm-scene').then(mod => mod.FarmScene), {
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-2xl"><p className="text-gray-500">Loading 3D World...</p></div>
+});
 
 type FarmBlock = {
   id: number;
@@ -199,6 +207,7 @@ export default function FarmTwinPage() {
   const [newCropName, setNewCropName] = useState("");
   const [newBlockColor, setNewBlockColor] = useState("primary");
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [weather, setWeather] = useState<any>(null);
 
   useEffect(() => {
@@ -285,17 +294,36 @@ export default function FarmTwinPage() {
             </div>
 
             <div className="flex gap-3">
-              <Button
-                onClick={() => setIsEditingLayout(!isEditingLayout)}
-                className={`transition-all bg-white/10 hover:bg-white/20 text-white border-none ${isEditingLayout ? 'ring-2 ring-[#c0ff01] bg-[#c0ff01]/20' : ''}`}
-              >
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                {isEditingLayout ? 'Done Editing' : 'Edit Layout'}
-              </Button>
-              <Button className="bg-[#c0ff01] hover:bg-[#b0ef00] text-[#0a1f16] font-bold shadow-lg shadow-[#c0ff01]/20">
-                <ArrowUpRight className="h-4 w-4 mr-2" />
-                Export Report
-              </Button>
+              <div className="bg-white/10 rounded-lg p-1 flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setViewMode('2d')}
+                  className={`h-8 px-3 rounded-md transition-all ${viewMode === '2d' ? 'bg-white text-[#0a1f16]' : 'text-white hover:bg-white/20'}`}
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  2D Grid
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setViewMode('3d')}
+                  className={`h-8 px-3 rounded-md transition-all ${viewMode === '3d' ? 'bg-[#c0ff01] text-[#0a1f16]' : 'text-white hover:bg-white/20'}`}
+                >
+                  <Box className="h-4 w-4 mr-2" />
+                  3D World
+                </Button>
+              </div>
+
+              {viewMode === '2d' && (
+                <Button
+                  onClick={() => setIsEditingLayout(!isEditingLayout)}
+                  className={`transition-all bg-white/10 hover:bg-white/20 text-white border-none ${isEditingLayout ? 'ring-2 ring-[#c0ff01] bg-[#c0ff01]/20' : ''}`}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  {isEditingLayout ? 'Done' : 'Edit'}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -321,167 +349,174 @@ export default function FarmTwinPage() {
         </section>
 
         {/* Farm Map Visualization */}
-        <div className="relative w-full rounded-3xl border border-[#d1d5db] shadow-xl bg-white overflow-hidden">
-          {/* Map Header */}
-          <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 pointer-events-none">
-            <div className="flex flex-wrap gap-2 pointer-events-auto">
-              <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-bold text-gray-700 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#14532d]" /> Crops
-              </div>
-              <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-bold text-gray-700 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#854d0e]" /> Structures
-              </div>
-            </div>
-
-            {weather && (
-              <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-gray-200 text-xs font-medium text-gray-700 flex items-center gap-3 pointer-events-auto">
-                <div className="flex items-center gap-1.5">
-                  <Sun className="h-4 w-4 text-orange-500" />
-                  <span className="font-bold">{Math.round(weather.main.temp)}°C</span>
-                </div>
-                <div className="w-px h-4 bg-gray-300" />
-                <div className="flex items-center gap-1.5">
-                  <Droplets className="h-4 w-4 text-blue-500" />
-                  <span>{weather.main.humidity}%</span>
-                </div>
-              </div>
-            )}
+        {/* Farm Map Visualization */}
+        {viewMode === '3d' ? (
+          <div className="relative w-full h-[600px] rounded-3xl overflow-hidden shadow-xl bg-black/5">
+            <FarmScene farmBlocks={farmBlocks} onBlockClick={setEditingBlock} />
           </div>
+        ) : (
+          <div className="relative w-full rounded-3xl border border-[#d1d5db] shadow-xl bg-white overflow-hidden">
+            {/* Map Header */}
+            <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 pointer-events-none">
+              <div className="flex flex-wrap gap-2 pointer-events-auto">
+                <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-bold text-gray-700 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#14532d]" /> Crops
+                </div>
+                <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-bold text-gray-700 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#854d0e]" /> Structures
+                </div>
+              </div>
 
-          {/* Isometric-ish Grid Container */}
-          <div className="relative z-10 p-8 pt-16 min-h-[500px] bg-[url('/bg_mesh.png')] bg-cover bg-center">
-            {/* Grid Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-
-            <div className="grid grid-cols-5 grid-rows-4 gap-4 max-w-4xl mx-auto aspect-[5/4]">
-              <AnimatePresence>
-                {farmBlocks.map((block) => {
-                  const colors = getColorClasses(block.color);
-                  const icon = structureIcons[block.structure];
-                  return (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      key={block.id}
-                      className={`${colors.bgClass} rounded-2xl border ${colors.borderClass} p-4 flex flex-col items-start justify-between relative group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-copy shadow-md`}
-                      style={{
-                        gridRow: `${block.gridPosition.row} / span ${block.gridPosition.rowSpan}`,
-                        gridColumn: `${block.gridPosition.col} / span ${block.gridPosition.colSpan}`,
-                      }}
-                      onClick={() => isEditingLayout && setEditingBlock({ ...block })}
-                    >
-                      {/* Status Indicator */}
-                      <div className="flex justify-between w-full items-start">
-                        <div className={`h-2 w-2 rounded-full ${colors.indicatorClass} animate-pulse`} />
-                        {block.healthStatus === 'warning' && (
-                          <div className="bg-red-500 text-white text-[10px] px-1.5 rounded-full font-bold animate-pulse">!</div>
-                        )}
-                      </div>
-
-                      <div className="mt-auto">
-                        <div className="text-2xl mb-1">{icon}</div>
-                        <p className="font-serif font-bold text-lg leading-none">{block.cropName}</p>
-                        <p className="text-[10px] uppercase tracking-wider opacity-70 mt-1 font-medium">{block.blockName}</p>
-                      </div>
-
-                      {/* Interactive Overlay when NOT editing (Details) */}
-                      {!isEditingLayout && (
-                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center text-white z-10">
-                          <p className="text-xs font-bold text-[#c0ff01] uppercase tracking-wider mb-2">Live Status</p>
-                          {block.sensorData ? (
-                            <div className="space-y-2 text-xs">
-                              <div className="flex justify-between border-b border-white/20 pb-1">
-                                <span className="text-gray-400">Moisture</span>
-                                <span>{block.sensorData.soilMoisture}%</span>
-                              </div>
-                              <div className="flex justify-between border-b border-white/20 pb-1">
-                                <span className="text-gray-400">Temp</span>
-                                <span>{block.sensorData.temperature}°C</span>
-                              </div>
-                              {block.predictedHarvest && (
-                                <div className="pt-1">
-                                  <span className="text-gray-400 block mb-0.5">Harvest</span>
-                                  <span className="font-bold">{block.predictedHarvest.toLocaleDateString()}</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-400">No sensor data connected.</p>
-                          )}
-
-                          <Button variant="outline" size="sm" className="w-full mt-3 h-7 text-xs bg-transparent border-white/30 text-white hover:bg-white hover:text-black">
-                            View Details
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Editing Overlay */}
-                      {isEditingLayout && (
-                        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 z-20">
-                          <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-black/5 rounded-full" onClick={(e) => { e.stopPropagation(); setEditingBlock(block); }}>
-                            <Pencil className="h-4 w-4 text-gray-600" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-red-50 rounded-full" onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-
-              {/* Add Block Button */}
-              {isEditingLayout && (
-                <Dialog open={addBlockDialogOpen} onOpenChange={setAddBlockDialogOpen}>
-                  <DialogTrigger asChild>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center hover:border-[#c0ff01] hover:bg-[#c0ff01]/5 transition-all group col-span-1 row-span-1"
-                    >
-                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#c0ff01] transition-colors">
-                        <Plus className="h-5 w-5 text-gray-400 group-hover:text-[#0a1f16]" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-400 mt-2 group-hover:text-[#0a1f16]">Add Block</span>
-                    </motion.button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="font-serif text-2xl">Add New Farm Block</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label>Block Name</Label>
-                        <Input value={newBlockName} onChange={(e) => setNewBlockName(e.target.value)} placeholder="e.g. North Field" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Crop/Structure</Label>
-                        <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Maize" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Theme Color</Label>
-                        <Select value={newBlockColor} onValueChange={setNewBlockColor}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {colorOptions.map((c) => (
-                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleAddBlock} className="bg-green-700 hover:bg-green-800 text-white">Add Block</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+              {weather && (
+                <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-gray-200 text-xs font-medium text-gray-700 flex items-center gap-3 pointer-events-auto">
+                  <div className="flex items-center gap-1.5">
+                    <Sun className="h-4 w-4 text-orange-500" />
+                    <span className="font-bold">{Math.round(weather.main.temp)}°C</span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300" />
+                  <div className="flex items-center gap-1.5">
+                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <span>{weather.main.humidity}%</span>
+                  </div>
+                </div>
               )}
             </div>
+
+            {/* Isometric-ish Grid Container */}
+            <div className="relative z-10 p-8 pt-16 min-h-[500px] bg-[url('/bg_mesh.png')] bg-cover bg-center">
+              {/* Grid Background Pattern */}
+              <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+              <div className="grid grid-cols-5 grid-rows-4 gap-4 max-w-4xl mx-auto aspect-[5/4]">
+                <AnimatePresence>
+                  {farmBlocks.map((block) => {
+                    const colors = getColorClasses(block.color);
+                    const icon = structureIcons[block.structure];
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        key={block.id}
+                        className={`${colors.bgClass} rounded-2xl border ${colors.borderClass} p-4 flex flex-col items-start justify-between relative group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-copy shadow-md`}
+                        style={{
+                          gridRow: `${block.gridPosition.row} / span ${block.gridPosition.rowSpan}`,
+                          gridColumn: `${block.gridPosition.col} / span ${block.gridPosition.colSpan}`,
+                        }}
+                        onClick={() => isEditingLayout && setEditingBlock({ ...block })}
+                      >
+                        {/* Status Indicator */}
+                        <div className="flex justify-between w-full items-start">
+                          <div className={`h-2 w-2 rounded-full ${colors.indicatorClass} animate-pulse`} />
+                          {block.healthStatus === 'warning' && (
+                            <div className="bg-red-500 text-white text-[10px] px-1.5 rounded-full font-bold animate-pulse">!</div>
+                          )}
+                        </div>
+
+                        <div className="mt-auto">
+                          <div className="text-2xl mb-1">{icon}</div>
+                          <p className="font-serif font-bold text-lg leading-none">{block.cropName}</p>
+                          <p className="text-[10px] uppercase tracking-wider opacity-70 mt-1 font-medium">{block.blockName}</p>
+                        </div>
+
+                        {/* Interactive Overlay when NOT editing (Details) */}
+                        {!isEditingLayout && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center text-white z-10">
+                            <p className="text-xs font-bold text-[#c0ff01] uppercase tracking-wider mb-2">Live Status</p>
+                            {block.sensorData ? (
+                              <div className="space-y-2 text-xs">
+                                <div className="flex justify-between border-b border-white/20 pb-1">
+                                  <span className="text-gray-400">Moisture</span>
+                                  <span>{block.sensorData.soilMoisture}%</span>
+                                </div>
+                                <div className="flex justify-between border-b border-white/20 pb-1">
+                                  <span className="text-gray-400">Temp</span>
+                                  <span>{block.sensorData.temperature}°C</span>
+                                </div>
+                                {block.predictedHarvest && (
+                                  <div className="pt-1">
+                                    <span className="text-gray-400 block mb-0.5">Harvest</span>
+                                    <span className="font-bold">{block.predictedHarvest.toLocaleDateString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400">No sensor data connected.</p>
+                            )}
+
+                            <Button variant="outline" size="sm" className="w-full mt-3 h-7 text-xs bg-transparent border-white/30 text-white hover:bg-white hover:text-black">
+                              View Details
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Editing Overlay */}
+                        {isEditingLayout && (
+                          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-2 z-20">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-black/5 rounded-full" onClick={(e) => { e.stopPropagation(); setEditingBlock(block); }}>
+                              <Pencil className="h-4 w-4 text-gray-600" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-red-50 rounded-full" onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                {/* Add Block Button */}
+                {isEditingLayout && (
+                  <Dialog open={addBlockDialogOpen} onOpenChange={setAddBlockDialogOpen}>
+                    <DialogTrigger asChild>
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center hover:border-[#c0ff01] hover:bg-[#c0ff01]/5 transition-all group col-span-1 row-span-1"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#c0ff01] transition-colors">
+                          <Plus className="h-5 w-5 text-gray-400 group-hover:text-[#0a1f16]" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-400 mt-2 group-hover:text-[#0a1f16]">Add Block</span>
+                      </motion.button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="font-serif text-2xl">Add New Farm Block</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label>Block Name</Label>
+                          <Input value={newBlockName} onChange={(e) => setNewBlockName(e.target.value)} placeholder="e.g. North Field" />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Crop/Structure</Label>
+                          <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Maize" />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Theme Color</Label>
+                          <Select value={newBlockColor} onValueChange={setNewBlockColor}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {colorOptions.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddBlock} className="bg-green-700 hover:bg-green-800 text-white">Add Block</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Helper text */}
         <div className="text-center text-xs text-gray-500">
@@ -531,7 +566,7 @@ export default function FarmTwinPage() {
         </Dialog>
 
         <BottomNav />
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }

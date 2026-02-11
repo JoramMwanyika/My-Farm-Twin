@@ -100,9 +100,35 @@ export default function AdvisorPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+
+  // Fetch Chat History on Mount
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    const fetchHistory = async () => {
+
+      try {
+        const res = await fetch('/api/chat/history');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages && data.messages.length > 0) {
+            // Append history, but keep the initial greeting if history is short or empty? 
+            // Actually, if we have history, we probably just want to show that.
+            // But let's keep the greeting as the VERY first message if looking for a fresh start?
+            // For now, let's just replace the default greeting with history + a "welcome back" if needed.
+            // Simplified: Just use history keys.
+            setMessages(data.messages.map((m: any) => ({
+              id: m.id, // String from DB
+              role: m.role,
+              text: m.text,
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load chat history", error);
+      }
+    };
+    fetchHistory();
+  }, []);
+
 
   const analyzeImage = async (
     file: File,
@@ -165,11 +191,11 @@ export default function AdvisorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [
-            ...messages.filter((m) => m.role === "user" || m.role === "ai").slice(-10),
+            ...messages.filter((m) => m.role === "user" || m.role === "ai").slice(-5), // Keep context small
             { role: "user", text: textToSend },
           ],
           imageAnalysis: imageAnalysisData,
-          language: language, // Pass the target language to the API
+          language: language,
         }),
       })
 

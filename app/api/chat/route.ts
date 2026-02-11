@@ -1,120 +1,145 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
 
-const AZURE_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT!
-const AZURE_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2025-01-01-preview"
-const AZURE_KEY = process.env.AZURE_OPENAI_KEY!
+export async function POST(req: Request) {
+  const session = await auth();
 
-const SYSTEM_PROMPT = `You are AgriTwin, a friendly and knowledgeable AI farming assistant for smallholder farmers in Kenya. 
-You provide advice on:
-- Crop management (planting, fertilizing, harvesting)
-- Pest and disease control
-- Weather-based recommendations
-- Soil health and irrigation
-- Market prices and best practices
-- Team task assignment and farm collaboration
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-Keep responses concise, practical, and easy to understand. Use simple language suitable for farmers with varying literacy levels.
-When relevant, consider local conditions in Kenya (climate, common crops like maize, beans, tomatoes, etc.).
-Always be encouraging and supportive.
-
-You can understand and respond in Swahili (Kiswahili), Kikuyu (Gikuyu), and Luo (Dholuo) if the user speaks them.
-
-Please use natural punctuation to make the text easy to read and suitable for Text-to-Speech (TTS).
-
-If the user shares information about a plant disease or pest from an image analysis, provide detailed advice on:
-1. Confirmation of the disease/pest identification
-2. Immediate actions to take
-3. Treatment options (both organic and chemical)
-4. Prevention measures for the future
-
-If the user asks to assign tasks to team members (e.g., "Tell John to water the tomatoes"), acknowledge the request and let them know the task has been assigned. Be conversational and natural about task assignments.`
-
-export async function POST(req: NextRequest) {
   try {
-    const { messages, imageAnalysis, language } = await req.json()
+    const { messages } = await req.json();
+    const lastMessage = messages[messages.length - 1].text;
 
-    // Determine target language name
-    let languageInstruction = ""
-    if (language === "sw") languageInstruction = "Reply in Swahili (Kiswahili)."
-    else if (language === "ki") languageInstruction = "Reply in Kikuyu (Gikuyu)."
-    else if (language === "luo") languageInstruction = "Reply in Luo (Dholuo)."
-    else if (language === "fr") languageInstruction = "Reply in French."
+    // 1. Fetch User Context (Farm Data)
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        farms: {
+          include: {
+            blocks: {
+              include: {
+                readings: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
-    // Build messages array
-    const apiMessages = [
-      { role: "system", content: SYSTEM_PROMPT + (languageInstruction ? `\n\n${languageInstruction}` : "") },
-      ...messages.map((m: { role: string; text: string }) => ({
-        role: m.role === "ai" ? "assistant" : "user",
-        content: m.text,
-      })),
-    ]
-
-    // If there's image analysis, add it to the last user message
-    if (imageAnalysis) {
-      const lastUserIdx = apiMessages.length - 1
-      apiMessages[lastUserIdx].content =
-        `[Image Analysis Results: ${imageAnalysis}]\n\nUser question: ${apiMessages[lastUserIdx].content}`
+    if (!user || user.farms.length === 0) {
+      return NextResponse.json({
+        message: "I see you haven't set up a farm yet. Please go to the Setup page to create your digital twin first!"
+      });
     }
 
-    const endpointUrl = new URL(AZURE_ENDPOINT)
-    endpointUrl.searchParams.set("api-version", AZURE_API_VERSION)
-    const url = endpointUrl.toString()
+    const farm = user.farms[0];
+    const blockDetails = farm.blocks.map(b => {
+      const reading = b.readings[0];
+      const status = reading ? reading.healthStatus : "no data";
+      const moisture = reading ? `${reading.moisture}%` : "unknown";
+      return `- ${b.name}: Status=${status}, Moisture=${moisture}`;
+    }).join("\n");
 
-    console.log("[v0] Calling Azure API at:", url)
+    const systemPrompt = `You are AgriTwin, an expert AI farming assistant for ${user.name || 'the farmer'}.
+    
+Current Farm Context:
+- Farm Name: ${farm.name}
+- Location: ${farm.location || 'Unknown'} (Assume typical climate for this detailed location)
+- Farm Size: ${farm.size || 'Unknown'} acres
+- Blocks & Status:
+${blockDetails}
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": AZURE_KEY,
-      },
-      body: JSON.stringify({
-        messages: apiMessages,
-        max_tokens: 800,
-        temperature: 0.7,
-      }),
-    })
+Instructions:
+- Provide specific, actionable advice based on the farm data.
+- If moisture is low (<30%), suggest watering.
+- If health is critical, suggest immediate inspection.
+- Keep responses concise and helpful. 
+- Use the user's name: ${user.name?.split(' ')[0] || 'Farmer'}.
+- Start with "Jambo" if appropriate.`;
 
-    const responseText = await response.text()
-    console.log("[v0] Azure API Response Status:", response.status)
-    console.log("[v0] Azure API Response:", responseText.substring(0, 500))
+    // 2. PERSISTENCE: Find or Create Chat Session
+    let chatSession = await db.chatSession.findFirst({
+      where: { userId: user.id },
+      orderBy: { updatedAt: 'desc' }
+    });
 
-    if (!response.ok) {
-      console.error("[v0] Azure GPT Error:", response.status, responseText)
-      return NextResponse.json(
-        {
-          error: "Failed to get AI response",
-          message: "I apologize, I'm having trouble connecting right now. Please try again in a moment.",
+    if (!chatSession) {
+      chatSession = await db.chatSession.create({
+        data: {
+          userId: user.id,
+          title: "Advisor Chat",
+        }
+      });
+    }
+
+    // Save User Message
+    await db.chatMessage.create({
+      data: {
+        sessionId: chatSession.id,
+        role: "user",
+        content: lastMessage,
+      }
+    });
+
+    // 3. Call Azure OpenAI
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+    const key = process.env.AZURE_OPENAI_KEY;
+    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4";
+
+    let aiReply = "I'm having trouble connecting to my AI brain right now.";
+
+    if (!endpoint || !key) {
+      console.warn("Azure OpenAI keys missing, using fallback.");
+      aiReply = "Azure keys are missing. Please check your configuration.";
+    } else {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": key,
         },
-        { status: 500 },
-      )
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages.map((m: any) => ({
+              role: m.role === 'ai' ? 'assistant' : m.role,
+              content: m.text
+            }))
+          ],
+          max_tokens: 800,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Azure OpenAI API Error:", response.status, errorText);
+        aiReply = "I'm sorry, I'm having trouble connecting right now. Please try again later.";
+      } else {
+        const data = await response.json();
+        aiReply = data.choices[0].message.content;
+      }
     }
 
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch {
-      console.error("[v0] JSON Parse Error:", responseText)
-      return NextResponse.json(
-        {
-          error: "Invalid response format",
-          message: "I received an unexpected response. Please try again.",
-        },
-        { status: 500 },
-      )
-    }
+    // 4. Save AI Response
+    await db.chatMessage.create({
+      data: {
+        sessionId: chatSession.id,
+        role: "assistant",
+        content: aiReply,
+      }
+    });
 
-    const aiMessage = data.choices?.[0]?.message?.content || "I apologize, I could not process your request."
+    return NextResponse.json({ message: aiReply });
 
-    return NextResponse.json({ message: aiMessage })
   } catch (error) {
-    console.error("[v0] Chat API Error:", error)
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: "Something went wrong. Please try again later.",
-      },
-      { status: 500 },
-    )
+    console.error("Chat API Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

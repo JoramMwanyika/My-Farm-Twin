@@ -1,4 +1,4 @@
-
+q
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,13 +8,99 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  role          String    @default("user") // "user", "admin", "advisor"
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  farms         Farm[]
+  chatSessions  ChatSession[]
+}
+
+model Farm {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  size        Float?   // in acres/hectares
+  latitude    Float?
+  longitude   Float?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  blocks      Block[]
+  alerts      Alert[]
+}
+
+model Block {
+  id           String          @id @default(cuid())
+  name         String
+  cropType     String?
+  area         Float?          // Size of this specific block
+  farmId       String
+  farm         Farm            @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  
+  readings     SensorReading[]
+
+  healthStatus String          @default("unknown") // "healthy", "warning", "critical", "unknown"
+  progress     Int             @default(0)
+  
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
 model SensorReading {
   id          Int      @id @default(autoincrement())
-  blockId     Int
-  blockName   String
-  healthStatus String @default("unknown")
+  blockId     String
+  block       Block    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  
+  // Snapshot data
+  healthStatus String  @default("unknown")
   progress    Int      @default(0)
+  
+  // Sensor metrics
   moisture    Float
   temp        Float
+  humidity    Float?
+  nitrogen    Float?
+  phosphorus  Float?
+  potassium   Float?
+  ph          Float?
+  
   createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  type        String   // "warning", "critical", "info"
+  message     String
+  isRead      Boolean  @default(false)
+  farmId      String
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  role          String      // "user" or "assistant"
+  content       String
+  sessionId     String
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
 }

@@ -18,13 +18,10 @@ import {
   Clock,
   MapPin,
   Loader2,
-  MessageSquare,
   Calendar as CalendarIcon,
   Users,
   Mic,
   Activity,
-  TrendingUp,
-  CheckCircle,
   Leaf,
 } from "lucide-react";
 import Link from "next/link";
@@ -74,77 +71,59 @@ interface WeatherData {
 export default function Dashboard() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
-  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [locationName, setLocationName] = useState("Nairobi"); // Default
-  const [teamTasks, setTeamTasks] = useState<any[]>([]);
-  const [calendarActivities, setCalendarActivities] = useState<any[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [locationName, setLocationName] = useState("Nairobi");
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [farmBlocks, setFarmBlocks] = useState<any[]>([]);
 
-  // Get user's location and fetch weather
+  // Initial Data Fetch
   useEffect(() => {
-    const getLocationAndWeather = async () => {
-      try {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              const { latitude, longitude } = position.coords;
-              setLocation({ lat: latitude, lon: longitude });
-              await fetchWeather(latitude, longitude);
-            },
-            async (error) => {
-              console.log("Location permission denied, using default location");
-              await fetchWeather();
-            }
-          );
-        } else {
-          await fetchWeather();
-        }
-      } catch (error) {
-        console.error("Error getting location:", error);
-        await fetchWeather();
-      }
+    const initDashboard = async () => {
+      await fetchDashboardData();
     };
+    initDashboard();
 
-    getLocationAndWeather();
-
-    // Initial fetch
-    fetchSensorData();
-
-    // Poll every 5 minutes (300000 ms)
-    const intervalId = setInterval(fetchSensorData, 300000);
-
+    // Poll every 5 minutes
+    const intervalId = setInterval(fetchDashboardData, 300000);
     return () => clearInterval(intervalId);
   }, []);
 
-  const loadTeamData = () => {
-    const tasksData = localStorage.getItem("farmTeamTasks");
-    // ... existing code ...
-  };
-
-  // Clean up loadTeamData indentation if needed, but the main change is the fetch logic below
-
-  const fetchSensorData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const res = await fetch('/api/sensors');
+      const res = await fetch('/api/dashboard');
       if (res.ok) {
         const data = await res.json();
-        setFarmBlocks(data.blocks);
+        setDashboardData(data);
+        setFarmBlocks(data.blocks || []);
+
+        // Use farm location for weather if available and not already set manually
+        if (data.farm?.location && locationName === "Nairobi") {
+          const city = data.farm.location.split(',')[0].trim();
+          handleLocationChange(city);
+        } else {
+          // Fallback to geolocation
+          initWeather();
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch sensor data", e);
-      // Fallback to demo data if API fails
-      loadDemoBlocks();
+      console.error("Failed to fetch dashboard data", e);
     }
   };
 
-  const loadDemoBlocks = () => {
-    const demoBlocks = [
-      { id: 1, name: "Block A - Maize (Offline)", healthStatus: "healthy", progress: 60, moisture: "--", temp: "--" },
-      { id: 2, name: "Block B - Beans (Offline)", healthStatus: "warning", progress: 85, moisture: "--", temp: "--" },
-      { id: 3, name: "Greenhouse (Offline)", healthStatus: "healthy", progress: 45, moisture: "--", temp: "--" },
-    ];
-    setFarmBlocks(demoBlocks);
+  const initWeather = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          await fetchWeather(latitude, longitude);
+        },
+        async (error) => {
+          console.log("Location permission denied, using default location");
+          await fetchWeather();
+        }
+      );
+    } else {
+      fetchWeather();
+    }
   };
 
   const fetchWeather = async (lat?: number, lon?: number) => {
@@ -161,7 +140,6 @@ export default function Dashboard() {
       setLocationName(data.name);
     } catch (error) {
       console.error("Error fetching weather:", error);
-      toast.error("Failed to load weather data");
     } finally {
       setIsLoadingWeather(false);
     }
@@ -174,8 +152,6 @@ export default function Dashboard() {
       const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
       const data = await response.json();
       setWeather(data);
-      setLocation({ lat: data.coord.lat, lon: data.coord.lon });
-      toast.success(`Weather updated for ${city}`);
     } catch (error) {
       console.error("Error fetching weather:", error);
       toast.error("Failed to update weather");
@@ -228,10 +204,10 @@ export default function Dashboard() {
               <span>{new Date().toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
             </div>
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-[#0a1f16]">
-              Jambo, <span className="text-[#2d5a47]">Samuel</span>
+              Jambo, <span className="text-[#2d5a47]">{dashboardData?.user?.name || 'Farmer'}</span>
             </h1>
             <p className="text-gray-600 mt-2 max-w-xl">
-              Your <span className="font-bold text-[#2d5a47]">AgriTwin</span> is synced. Monitor your farm's vital signs below.
+              <span className="font-bold text-[#2d5a47]">{dashboardData?.farm?.name || 'Your Farm'}</span> is synced. Monitor your farm's vital signs below.
             </p>
           </motion.div>
 
@@ -324,10 +300,10 @@ export default function Dashboard() {
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Active Blocks", value: "3", icon: Sprout, color: "text-emerald-600", bg: "bg-emerald-100" },
-                { label: "Tasks Pending", value: teamTasks.filter((t: any) => t.status === 'pending').length || "0", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
-                { label: "Alerts", value: "1", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100" },
-                { label: "Health", value: "98%", icon: Activity, color: "text-rose-600", bg: "bg-rose-100" }
+                { label: "Active Blocks", value: dashboardData?.stats?.activeBlocks || "0", icon: Sprout, color: "text-emerald-600", bg: "bg-emerald-100" },
+                { label: "Tasks Pending", value: dashboardData?.stats?.pendingTasks || "0", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
+                { label: "Alerts", value: dashboardData?.stats?.alerts || "0", icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100" },
+                { label: "Health", value: dashboardData?.stats?.health || "--", icon: Activity, color: "text-rose-600", bg: "bg-rose-100" }
               ].map((stat, i) => (
                 <motion.div variants={itemVariants} key={i}>
                   <Card className="border-none shadow-sm hover:shadow-md transition-all h-full bg-white/60 backdrop-blur-sm">
@@ -345,7 +321,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Alerts Section */}
+            {/* Alerts Section (Placeholder or dynamic if added) */}
             <motion.div variants={itemVariants}>
               <Card className="border-l-4 border-amber-400 bg-amber-50/50 shadow-sm">
                 <CardContent className="p-6 flex items-start gap-4">
@@ -353,13 +329,10 @@ export default function Dashboard() {
                     <AlertTriangle className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-[#5B3B00] text-lg">Irrigation Advisory</h3>
+                    <h3 className="font-bold text-[#5B3B00] text-lg">System Update</h3>
                     <p className="text-[#8A5B00] mt-1 text-sm leading-relaxed">
-                      Soil moisture levels in <strong>Block B (Beans)</strong> have dropped below 40%. Recommend scheduling irrigation for tomorrow morning.
+                      Your farm twin is active. Monitor moisture levels for optimal growth.
                     </p>
-                    <Button size="sm" variant="link" className="px-0 text-amber-700 mt-2 h-auto font-semibold">
-                      View Recommendation <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -378,7 +351,7 @@ export default function Dashboard() {
                   <Link href="/farm"><Button variant="ghost" size="sm" className="h-8">View All</Button></Link>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {farmBlocks.map((block: any) => (
+                  {farmBlocks.length > 0 ? farmBlocks.map((block: any) => (
                     <div key={block.id} className="group p-3 rounded-xl hover:bg-white border border-transparent hover:border-gray-100 transition-all hover:shadow-sm">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-3">
@@ -391,12 +364,12 @@ export default function Dashboard() {
                               <Badge variant="outline" className={`text-[10px] py-0 h-5 ${getHealthStatusColor(block.healthStatus)}`}>
                                 {block.healthStatus}
                               </Badge>
-                              {(block.moisture !== undefined) && (
+                              {(block.moisture !== '--') && (
                                 <span className="text-[10px] text-gray-500 flex items-center gap-1">
                                   <Droplets className="w-3 h-3" /> {block.moisture}%
                                 </span>
                               )}
-                              {(block.temp !== undefined) && (
+                              {(block.temp !== '--') && (
                                 <span className="text-[10px] text-gray-500 flex items-center gap-1">
                                   <Thermometer className="w-3 h-3" /> {block.temp}°
                                 </span>
@@ -413,12 +386,14 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-6 text-gray-400 text-sm">No blocks configured</div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Upcoming Activity */}
+            {/* Upcoming Activity (Static for now) */}
             <motion.div variants={itemVariants}>
               <Card className="border-none shadow-lg bg-white/80 backdrop-blur-md">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -426,18 +401,7 @@ export default function Dashboard() {
                   <Link href="/calendar"><Button variant="ghost" size="sm" className="h-8"><CalendarIcon className="w-4 h-4" /></Button></Link>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-0 relative">
-                    <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-100"></div>
-                    {calendarActivities.length > 0 ? calendarActivities.map((activity: any, i: number) => (
-                      <div key={i} className="relative pl-8 py-3 first:pt-0 last:pb-0">
-                        <div className="absolute left-[5px] top-4 w-4 h-4 rounded-full border-4 border-white bg-purple-500 shadow-sm z-10"></div>
-                        <div className="text-sm font-semibold">{activity.activityType}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{activity.cropType} • {new Date(activity.date).toLocaleDateString()}</div>
-                      </div>
-                    )) : (
-                      <div className="text-center py-6 text-gray-400 text-sm">No scheduled activities</div>
-                    )}
-                  </div>
+                  <div className="text-center py-6 text-gray-400 text-sm">No scheduled activities</div>
                 </CardContent>
               </Card>
             </motion.div>
