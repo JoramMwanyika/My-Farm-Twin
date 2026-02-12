@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from 'next-auth';
-
+ 
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -8,12 +8,11 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnProtectedRoute = nextUrl.pathname.startsWith('/farm') ||
-        nextUrl.pathname.startsWith('/advisor') ||
-        nextUrl.pathname.startsWith('/alerts') ||
-        nextUrl.pathname.startsWith('/profile') ||
-        nextUrl.pathname.startsWith('/setup') ||
-        nextUrl.pathname.startsWith('/dashboard');
-
+                           nextUrl.pathname.startsWith('/advisor') ||
+                           nextUrl.pathname.startsWith('/alerts') ||
+                           nextUrl.pathname.startsWith('/profile') ||
+                           nextUrl.pathname.startsWith('/dashboard');
+      
       if (isOnProtectedRoute) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page

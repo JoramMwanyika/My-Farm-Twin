@@ -1,63 +1,136 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server"
 
-export async function POST(req: Request) {
+// Azure Computer Vision for image analysis
+const VISION_ENDPOINT = process.env.AZURE_VISION_ENDPOINT!
+const VISION_KEY = process.env.AZURE_VISION_KEY!
+
+// Azure GPT-4 for disease analysis
+const GPT_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT!
+const GPT_KEY = process.env.AZURE_OPENAI_KEY!
+const GPT_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2025-01-01-preview"
+
+export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const image = formData.get("image") as File;
+    const formData = await req.formData()
+    const imageFile = formData.get("image") as File
 
-    if (!image) {
-      return NextResponse.json({ error: "Image is required" }, { status: 400 });
+    if (!imageFile) {
+      return NextResponse.json({ error: "No image provided" }, { status: 400 })
     }
 
-    const endpoint = process.env.AZURE_VISION_ENDPOINT;
-    const key = process.env.AZURE_VISION_KEY;
+    // Convert file to buffer
+    const arrayBuffer = await imageFile.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-    if (!endpoint || !key) {
-      return NextResponse.json({ error: "Vision configuration missing" }, { status: 503 });
+    // Step 1: Analyze image with Azure Computer Vision
+    const visionResponse = await fetch(
+      `${VISION_ENDPOINT}/computervision/imageanalysis:analyze?api-version=2024-02-01&features=caption,tags,objects,denseCaptions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Ocp-Apim-Subscription-Key": VISION_KEY,
+        },
+        body: buffer,
+      },
+    )
+
+    if (!visionResponse.ok) {
+      const errorText = await visionResponse.text()
+      console.error("Vision API Error:", visionResponse.status, errorText)
+      return NextResponse.json({ error: "Failed to analyze image", details: errorText }, { status: 500 })
     }
 
-    // Convert file to ArrayBuffer
-    const buffer = await image.arrayBuffer();
+    const visionData = await visionResponse.json()
 
-    // Call Azure Computer Vision 4.0 (or 3.2 depending on tier, assuming 3.2 for standard analysis)
-    // Using simple "describe" feature
-    const url = `${endpoint}/vision/v3.2/describe?maxCandidates=1&language=en`;
+    // Extract relevant information
+    const caption = visionData.captionResult?.text || "Unknown image"
+    const tags = visionData.tagsResult?.values?.map((t: { name: string }) => t.name).join(", ") || ""
+    const denseCaptions = visionData.denseCaptionsResult?.values?.map((c: { text: string }) => c.text).join("; ") || ""
 
-    const response = await fetch(url, {
+    // Step 2: Use GPT-4 to analyze for plant diseases
+    const analysisPrompt = `You are an expert agricultural plant pathologist. Analyze this image description and identify any plant diseases, pests, or health issues.
+
+Image Caption: ${caption}
+Tags: ${tags}
+Detailed Descriptions: ${denseCaptions}
+
+Based on this information:
+1. Identify if this appears to be a plant/crop image
+2. If it's a plant, identify any visible diseases, pests, nutrient deficiencies, or health issues
+3. Provide the likely disease/condition name
+4. Rate the severity (Mild, Moderate, Severe)
+5. List key symptoms visible
+
+Respond in this JSON format:
+{
+  "isPlant": true/false,
+  "plantType": "identified plant or crop type",
+  "condition": "disease or condition name, or 'Healthy' if no issues",
+  "severity": "Mild/Moderate/Severe/Healthy",
+  "symptoms": ["symptom 1", "symptom 2"],
+  "confidence": "High/Medium/Low",
+  "summary": "Brief 1-2 sentence summary for farmer"
+}`
+
+    const gptUrl = new URL(GPT_ENDPOINT)
+    gptUrl.searchParams.set("api-version", GPT_API_VERSION)
+
+    const gptResponse = await fetch(gptUrl.toString(), {
       method: "POST",
       headers: {
-        "Ocp-Apim-Subscription-Key": key,
-        "Content-Type": "application/octet-stream",
+        "Content-Type": "application/json",
+        "api-key": GPT_KEY,
       },
-      body: buffer,
-    });
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert agricultural plant pathologist. Always respond with valid JSON.",
+          },
+          { role: "user", content: analysisPrompt },
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+      }),
+    })
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Azure Vision API Error:", response.status, errorText);
-      return NextResponse.json({ error: "Image analysis failed" }, { status: 500 });
+    if (!gptResponse.ok) {
+      const errorText = await gptResponse.text()
+      console.error("GPT Analysis Error:", gptResponse.status, errorText)
+      // Return basic vision results if GPT fails
+      return NextResponse.json({
+        analysis: {
+          isPlant: tags.toLowerCase().includes("plant") || tags.toLowerCase().includes("leaf"),
+          plantType: "Unknown",
+          condition: "Analysis unavailable",
+          severity: "Unknown",
+          symptoms: [],
+          confidence: "Low",
+          summary: caption,
+        },
+        rawVision: { caption, tags, denseCaptions },
+      })
     }
 
-    const data = await response.json();
-    const caption = data.description?.captions[0]?.text || "No description available";
-    const tags = data.description?.tags || [];
+    const gptData = await gptResponse.json()
+    const gptContent = gptData.choices?.[0]?.message?.content || "{}"
 
-    // Simple heuristic for plant disease since we aren't using a custom model yet
-    const diagnosis = {
-      plantType: tags.find((t: string) => ['plant', 'leaf', 'tree', 'maize', 'crop', 'vegetable'].includes(t)) || "Plant",
-      condition: tags.includes('disease') || tags.includes('fungus') || caption.includes('brown') || caption.includes('yellow') ? "Potential Issue" : "Healthy Appearance",
-      severity: "Unknown",
-      symptoms: tags.filter((t: string) => ['yellow', 'brown', 'spots', 'withered', 'insect'].includes(t)),
-      confidence: `${(data.description?.captions[0]?.confidence * 100).toFixed(0)}%`
-    };
+    let analysis
+    try {
+      // Try to parse JSON from GPT response
+      const jsonMatch = gptContent.match(/\{[\s\S]*\}/)
+      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: gptContent }
+    } catch {
+      analysis = { summary: gptContent, condition: "Analysis completed", severity: "Unknown" }
+    }
 
     return NextResponse.json({
-      analysis: diagnosis,
-      rawVision: { caption, tags }
-    });
-
+      analysis,
+      rawVision: { caption, tags, denseCaptions },
+    })
   } catch (error) {
-    console.error("Vision API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Image Analysis Error:", error)
+    return NextResponse.json({ error: "Failed to analyze image" }, { status: 500 })
   }
 }

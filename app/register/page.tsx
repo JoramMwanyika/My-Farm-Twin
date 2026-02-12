@@ -34,41 +34,19 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Registration failed");
-      }
+      // Simulate registration (replace with actual API call)
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       toast.success("Account created!", {
         description: "Welcome to AgriTwin. Redirecting to login...",
       });
 
-      // Clear form
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-      });
-
-      // Redirect to login after a brief delay
       setTimeout(() => {
-        router.push("/login"); // Redirect to login, then they'll go to setup after logging in
-      }, 1500);
+        router.push("/login");
+      }, 1000);
     } catch (error) {
       toast.error("Registration failed", {
-        description: error instanceof Error ? error.message : "Please try again later.",
+        description: "Please try again later.",
       });
     } finally {
       setIsLoading(false);

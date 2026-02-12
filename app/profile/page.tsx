@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,52 +20,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 const LANGUAGES = [
   { code: "en", name: "English", flag: "🇬🇧" },
   { code: "sw", name: "Kiswahili", flag: "🇰🇪" },
-  { code: "ki", name: "Gikuyu", flag: "🇰🇪" },
-  { code: "luo", name: "Dholuo", flag: "🇰🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
-  { code: "af", name: "Afrikaans", flag: "🇿🇦" },
-  { code: "am", name: "Amharic", flag: "🇪🇹" },
-  { code: "ar-DZ", name: "Arabic (Algeria)", flag: "🇩🇿" },
-  { code: "ar-EG", name: "Arabic (Egypt)", flag: "🇪🇬" },
-  { code: "ar-MA", name: "Arabic (Morocco)", flag: "🇲🇦" },
-  { code: "ha", name: "Hausa", flag: "🇳🇬" },
-  { code: "ig", name: "Igbo", flag: "🇳🇬" },
-  { code: "rw", name: "Kinyarwanda", flag: "🇷🇼" },
-  { code: "st", name: "Sesotho", flag: "🇿🇦" },
-  { code: "sn", name: "Shona", flag: "🇿🇼" },
-  { code: "so", name: "Somali", flag: "🇸🇴" },
-  { code: "ti", name: "Tigrinya", flag: "🇪🇹" },
-  { code: "ts", name: "Tsonga", flag: "🇿🇦" },
-  { code: "tn", name: "Tswana", flag: "🇿🇦" },
-  { code: "wo", name: "Wolof", flag: "🇸🇳" },
-  { code: "xh", name: "Xhosa", flag: "🇿🇦" },
-  { code: "yo", name: "Yoruba", flag: "🇳🇬" },
-  { code: "zu", name: "Zulu", flag: "🇿🇦" },
 ]
 
 export default function ProfilePage() {
   const [notifications, setNotifications] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false)
   const [language, setLanguage] = useState("en")
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem("agriTwin-language")
-    if (savedLang && LANGUAGES.some(l => l.code === savedLang)) {
-      setLanguage(savedLang)
-    }
-  }, [])
-
   const [profile, setProfile] = useState({
     name: "Samuel K.",
     location: "Kiambu, Kenya",
@@ -73,6 +39,8 @@ export default function ProfilePage() {
     email: "samuel.k@agrivoice.demo"
   })
   const [tempProfile, setTempProfile] = useState(profile)
+
+  const currentLang = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0]
 
   const handleSaveProfile = () => {
     setProfile(tempProfile)
@@ -82,8 +50,8 @@ export default function ProfilePage() {
 
   const handleLanguageChange = (code: string) => {
     setLanguage(code)
-    localStorage.setItem("agriTwin-language", code)
     const lang = LANGUAGES.find((l) => l.code === code)
+    setIsLanguageOpen(false)
     toast.success(`Language changed to ${lang?.name}`)
   }
 
@@ -182,31 +150,47 @@ export default function ProfilePage() {
           >
             <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
               <CardContent className="p-0 divide-y divide-gray-100">
-                <Select value={language} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-full h-auto border-0 shadow-none p-4 hover:bg-gray-50 transition-colors [&>span]:w-full">
-                    <div className="flex items-center gap-4 text-left">
-                      <div className="h-10 w-10 rounded-full bg-[#e6f4ea] flex items-center justify-center">
-                        <Globe className="h-5 w-5 text-[#14532d]" />
+                <Dialog open={isLanguageOpen} onOpenChange={setIsLanguageOpen}>
+                  <DialogTrigger asChild>
+                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-[#e6f4ea] flex items-center justify-center group-hover:bg-[#dcefe3] transition-colors">
+                          <Globe className="h-5 w-5 text-[#14532d]" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Language</p>
+                          <p className="text-xs text-gray-500">
+                            Current: <span className="font-medium text-gray-800">{currentLang.flag} {currentLang.name}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">Language</p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          Current: <span className="font-medium text-gray-800 flex items-center gap-1"><SelectValue placeholder={LANGUAGES[0].name} /></span>
-                        </p>
-                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
                     </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        <span className="flex items-center gap-2">
-                          <span className="text-lg">{lang.flag}</span>
-                          <span>{lang.name}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="font-serif">Select Language</DialogTitle>
+                      <DialogDescription>Choose your preferred language for the interface and AI assistant.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-4">
+                      {LANGUAGES.map((lang) => (
+                        <Button
+                          key={lang.code}
+                          variant={language === lang.code ? "default" : "outline"}
+                          className={`justify-start gap-4 h-14 ${language === lang.code
+                              ? 'bg-[#14532d] hover:bg-[#0a1f16] text-white border-transparent'
+                              : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          onClick={() => handleLanguageChange(lang.code)}
+                        >
+                          <span className="text-2xl">{lang.flag}</span>
+                          <span className="text-base font-medium">{lang.name}</span>
+                          {language === lang.code && <div className="ml-auto w-2 h-2 rounded-full bg-[#c0ff01]" />}
+                        </Button>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 <div className="flex items-center justify-between p-4 group">
                   <div className="flex items-center gap-4">
