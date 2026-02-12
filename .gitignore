@@ -43,3 +43,9 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Database
+*.db
+*.db-journal
+prisma/dev.db
+prisma/dev.db-journal
