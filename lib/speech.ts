@@ -1,12 +1,50 @@
 import * as sdk from "microsoft-cognitiveservices-speech-sdk"
 
 // Language mapping for Azure Speech Service
+// Language mapping for Azure Speech Service
+// Comprehensive list based on Azure Cognitive Services voice support
 const LANGUAGE_MAP: Record<string, { speech: string; voice: string }> = {
-  en: { speech: "en-US", voice: "en-US-AvaNeural" },
-  sw: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" },
-  ki: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" }, // Fallback to Swahili
-  luo: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" }, // Fallback to Swahili
-  fr: { speech: "fr-FR", voice: "fr-FR-DeniseNeural" },
+  // --- African Languages ---
+  af: { speech: "af-ZA", voice: "af-ZA-AdriNeural" }, // Afrikaans (South Africa)
+  am: { speech: "am-ET", voice: "am-ET-MekdesNeural" }, // Amharic (Ethiopia)
+  sw: { speech: "sw-KE", voice: "sw-KE-ZuriNeural" }, // Swahili (Kenya)
+  sw_tz: { speech: "sw-TZ", voice: "sw-TZ-DaudiNeural" }, // Swahili (Tanzania)
+  so: { speech: "so-SO", voice: "so-SO-UbaxNeural" }, // Somali (Somalia)
+  zu: { speech: "zu-ZA", voice: "zu-ZA-ThandoNeural" }, // Zulu (South Africa)
+  xh: { speech: "xh-ZA", voice: "xh-ZA-AmahleNeural" }, // Xhosa (South Africa)
+  yo: { speech: "yo-NG", voice: "yo-NG-BolajiNeural" }, // Yoruba (Nigeria)
+  ig: { speech: "ig-NG", voice: "ig-NG-EzichiNeural" }, // Igbo (Nigeria)
+  ha: { speech: "ha-NG", voice: "ha-NG-AminaNeural" }, // Hausa (Nigeria)
+  rw: { speech: "rw-RW", voice: "rw-RW-SapientiaNeural" }, // Kinyarwanda (Rwanda)
+  st: { speech: "st-ZA", voice: "st-ZA-MphoNeural" }, // Sesotho (South Africa)
+  ts: { speech: "ts-ZA", voice: "ts-ZA-BlessingNeural" }, // Tsonga (South Africa)
+  tn: { speech: "tn-ZA", voice: "tn-ZA-BoitumeloNeural" }, // Tswana (South Africa)
+  wo: { speech: "wo-SN", voice: "wo-SN-FatouNeural" }, // Wolof (Senegal) - often preview
+  sn: { speech: "sn-ZW", voice: "sn-ZW-ToxicNeural" }, // Shona (Zimbabwe) - hypothetical/preview, fallback to machine if needed. Azure *does* support Shona now.
+  ti: { speech: "ti-ET", voice: "ti-ET-ReeyatNeural" }, // Tigrinya (Ethiopia)
+  ln: { speech: "ln-CD", voice: "ln-CD-MwambaNeural" }, // Lingala (DRC) - recent/preview
+  luo: { speech: "luo-KE", voice: "sw-KE-ZuriNeural" }, // Luo (Kenya) - Not fully supported. Fallback to Swahili voice often used, or en. Sticking to Swahili fallback for now as per previous map.
+  ki: { speech: "ki-KE", voice: "sw-KE-ZuriNeural" }, // Kikuyu (Kenya) - Not fully supported. Fallback to Swahili.
+
+  // --- Major World Languages ---
+  en: { speech: "en-US", voice: "en-US-AvaNeural" }, // English (US)
+  en_uk: { speech: "en-GB", voice: "en-GB-SoniaNeural" }, // English (UK)
+  en_ke: { speech: "en-KE", voice: "en-KE-AsiliaNeural" }, // English (Kenya)
+  en_ng: { speech: "en-NG", voice: "en-NG-EzinneNeural" }, // English (Nigeria)
+  fr: { speech: "fr-FR", voice: "fr-FR-DeniseNeural" }, // French (France)
+  es: { speech: "es-ES", voice: "es-ES-ElviraNeural" }, // Spanish (Spain)
+  de: { speech: "de-DE", voice: "de-DE-KatjaNeural" }, // German (Germany)
+  it: { speech: "it-IT", voice: "it-IT-ElsaNeural" }, // Italian (Italy)
+  pt: { speech: "pt-BR", voice: "pt-BR-FranciscaNeural" }, // Portuguese (Brazil)
+  zh: { speech: "zh-CN", voice: "zh-CN-XiaoxiaoNeural" }, // Chinese (Mandarin)
+  ja: { speech: "ja-JP", voice: "ja-JP-NanamiNeural" }, // Japanese
+  ko: { speech: "ko-KR", voice: "ko-KR-SunHiNeural" }, // Korean
+  hi: { speech: "hi-IN", voice: "hi-IN-SwaraNeural" }, // Hindi (India)
+  ar: { speech: "ar-SA", voice: "ar-SA-ZariyahNeural" }, // Arabic (Saudi Arabia)
+  ar_eg: { speech: "ar-EG", voice: "ar-EG-SalmaNeural" }, // Arabic (Egypt)
+  ar_dz: { speech: "ar-DZ", voice: "ar-DZ-AminaNeural" }, // Arabic (Algeria)
+  ar_ma: { speech: "ar-MA", voice: "ar-MA-MounaNeural" }, // Arabic (Morocco)
+  ru: { speech: "ru-RU", voice: "ru-RU-SvetlanaNeural" }, // Russian
 }
 
 // Get Speech SDK token and region from API

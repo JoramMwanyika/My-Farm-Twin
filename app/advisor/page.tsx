@@ -9,10 +9,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Mic, Send, Volume2, VolumeX, Globe, Loader2, Phone, PhoneOff, Image as ImageIcon, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { speakText, startSpeechRecognition, startContinuousRecognition } from "@/lib/speech"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
 import ReactMarkdown from "react-markdown"
 import { motion, AnimatePresence } from "framer-motion"
+import { updateUserLanguage } from "@/app/actions/user"
 
 type Message = {
   id: number
@@ -30,19 +31,88 @@ type Message = {
 }
 
 const LANGUAGES = [
-  { code: "en", name: "English", flag: "🇬🇧" },
-  { code: "sw", name: "Kiswahili", flag: "🇰🇪" },
-  { code: "ki", name: "Gikuyu", flag: "🇰🇪" },
-  { code: "luo", name: "Dholuo", flag: "🇰🇪" },
+  // African Languages
+  { code: "sw", name: "Kiswahili (Kenya)", flag: "🇰🇪" },
+  { code: "sw_tz", name: "Kiswahili (Tanzania)", flag: "🇹🇿" },
+  { code: "ki", name: "Gikuyu (Kenya)", flag: "🇰🇪" },
+  { code: "luo", name: "Dholuo (Kenya)", flag: "🇰🇪" },
+  { code: "en_ke", name: "English (Kenya)", flag: "🇰🇪" },
+  { code: "en_ng", name: "English (Nigeria)", flag: "🇳🇬" },
+  { code: "ha", name: "Hausa (Nigeria)", flag: "🇳🇬" },
+  { code: "ig", name: "Igbo (Nigeria)", flag: "🇳🇬" },
+  { code: "yo", name: "Yoruba (Nigeria)", flag: "🇳🇬" },
+  { code: "zu", name: "Zulu (South Africa)", flag: "🇿🇦" },
+  { code: "xh", name: "Xhosa (South Africa)", flag: "🇿🇦" },
+  { code: "af", name: "Afrikaans (South Africa)", flag: "🇿🇦" },
+  { code: "st", name: "Sesotho (South Africa)", flag: "🇿🇦" },
+  { code: "ts", name: "Tsonga (South Africa)", flag: "🇿🇦" },
+  { code: "tn", name: "Tswana (South Africa)", flag: "🇿🇦" },
+  { code: "am", name: "Amharic (Ethiopia)", flag: "🇪🇹" },
+  { code: "ti", name: "Tigrinya (Ethiopia)", flag: "🇪🇹" },
+  { code: "so", name: "Somali (Somalia)", flag: "🇸🇴" },
+  { code: "rw", name: "Kinyarwanda (Rwanda)", flag: "🇷🇼" },
+  { code: "wo", name: "Wolof (Senegal)", flag: "🇸🇳" },
+  { code: "ln", name: "Lingala (DRC)", flag: "🇨🇩" },
+  { code: "sn", name: "Shona (Zimbabwe)", flag: "🇿🇼" },
+  { code: "ar-DZ", name: "Arabic (Algeria)", flag: "🇩🇿" },
+  { code: "ar-EG", name: "Arabic (Egypt)", flag: "🇪🇬" },
+  { code: "ar-MA", name: "Arabic (Morocco)", flag: "🇲🇦" },
+
+  // International Languages
+  { code: "en", name: "English (US)", flag: "🇺🇸" },
+  { code: "en_uk", name: "English (UK)", flag: "🇬🇧" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "it", name: "Italiano", flag: "🇮🇹" },
+  { code: "pt", name: "Português (Brasil)", flag: "🇧🇷" },
+  { code: "zh", name: "Chinese (Mandarin)", flag: "🇨🇳" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "ar", name: "Arabic (Gulf)", flag: "🇸🇦" },
+  { code: "ru", name: "Russian", flag: "🇷🇺" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "ko", name: "Korean", flag: "🇰🇷" },
 ]
 
 const GREETINGS: Record<string, string> = {
   en: "Hello! I'm ready to talk.",
-  sw: "Habari",
+  en_uk: "Hello! I'm ready to have a chat.",
+  en_ke: "Hello! I am ready to assist you.",
+  en_ng: "Hello! How can I help you today?",
+  sw: "Habari! Nipo tayari kuzungumza.",
+  sw_tz: "Shikamoo! Nipo tayari kukusaidia.",
   ki: "Wimwega! Ndi tayari kwaria.",
   luo: "Misawa! Antie tayari wuoyo.",
   fr: "Bonjour! Je suis prêt à parler.",
+  af: "Hallo! Ek is gereed om te praat.",
+  am: "ሰላም! ለመነጋገር ዝግጁ ነኝ።",
+  "ar-DZ": "مرحباً! أنا مستعد للتحدث.",
+  "ar-EG": "مرحباً! أنا مستعد للتحدث.",
+  "ar-MA": "مرحباً! أنا مستعد للتحدث.",
+  ha: "Sannu! Ina shirye don yin magana.",
+  ig: "Ndeewo! Adị m njikere ikwu okwu.",
+  rw: "Muraho! Niteguye kuvuga.",
+  st: "Dumela! Ke itokiselitse ho bua.",
+  sn: "Mhoro! Ndagadzirira kutaura.",
+  so: "Salaan! Diyaar ayaan u ahay inaan hadlo.",
+  ti: "ሰላም! ክዛረብ ድሉው እየ።",
+  ts: "Avuxeni! Ndzi lunghekele ku vulavula.",
+  tn: "Dumela! Ke ipaakanyeditse go bua.",
+  wo: "Salaam! Pare naa ngir wax.",
+  xh: "Molo! Ndikulungele ukuthetha.",
+  yo: "Bawo! Mo ti ṣetan lati sọrọ.",
+  zu: "Sawubona! Ngikulungele ukukhuluma.",
+  ln: "Mbote! Nazali tayari kosolola.",
+  es: "¡Hola! Estoy listo para hablar.",
+  de: "Hallo! Ich bin bereit zu sprechen.",
+  it: "Ciao! Sono pronto a parlare.",
+  pt: "Olá! Estou pronto para conversar.",
+  zh: "你好！我准备好交谈了。",
+  ja: "こんにちは！話す準備ができました。",
+  ko: "안녕하세요! 대화할 준비가 되었습니다.",
+  hi: "नमस्ते! मैं बात करने के लिए तैयार हूँ।",
+  ar: "مرحباً! أنا مستعد للتحدث.",
+  ru: "Привет! Я готов к разговору.",
 }
 
 export default function AdvisorPage() {
@@ -61,6 +131,19 @@ export default function AdvisorPage() {
   const [autoSpeak, setAutoSpeak] = useState(false)
   const [isVoiceMode, setIsVoiceMode] = useState(false)
   const [language, setLanguage] = useState("en")
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem("agriTwin-language")
+    if (savedLang && LANGUAGES.some(l => l.code === savedLang)) {
+      setLanguage(savedLang)
+    }
+  }, [])
+
+  const handleLanguageChange = async (code: string) => {
+    setLanguage(code)
+    localStorage.setItem("agriTwin-language", code)
+    await updateUserLanguage(code)
+  }
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -458,21 +541,22 @@ export default function AdvisorPage() {
 
       {/* Top Controls Bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#1e293b] border-b border-slate-700 shadow-sm z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 text-slate-300 hover:text-[#22c55e] hover:bg-slate-700">
-              <Globe className="h-4 w-4" />
-              <span className="font-medium">{currentLang.flag} {currentLang.name}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
+        <Select value={language} onValueChange={handleLanguageChange}>
+          <SelectTrigger className="w-auto gap-2 border-slate-600 bg-transparent text-slate-300 hover:text-[#22c55e] hover:bg-slate-700 h-9">
+            <Globe className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {LANGUAGES.map((lang) => (
-              <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code)}>
-                <span className="text-lg mr-2">{lang.flag}</span> {lang.name}
-              </DropdownMenuItem>
+              <SelectItem key={lang.code} value={lang.code}>
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </span>
+              </SelectItem>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </SelectContent>
+        </Select>
 
         <div className="flex items-center gap-2">
           <Button
