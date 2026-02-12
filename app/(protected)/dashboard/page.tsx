@@ -343,52 +343,82 @@ export default function Dashboard() {
           {/* Right Column (Farm Status & Activity) - Span 4 */}
           <div className="lg:col-span-4 space-y-6">
 
-            {/* Farm Blocks */}
+            {/* Farm Layout Grid */}
             <motion.div variants={itemVariants}>
               <Card className="border-none shadow-lg bg-white/80 backdrop-blur-md">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="font-serif text-xl">Farm Status</CardTitle>
-                  <Link href="/farm"><Button variant="ghost" size="sm" className="h-8">View All</Button></Link>
+                  <CardTitle className="font-serif text-xl">Farm Layout</CardTitle>
+                  <Link href="/farm">
+                    <Button variant="ghost" size="sm" className="h-8">Manage Blocks</Button>
+                  </Link>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {farmBlocks.length > 0 ? farmBlocks.map((block: any) => (
-                    <div key={block.id} className="group p-3 rounded-xl hover:bg-white border border-transparent hover:border-gray-100 transition-all hover:shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-[#c0ff01] group-hover:text-black transition-colors">
-                            <Leaf className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-semibold text-sm">{block.name}</div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className={`text-[10px] py-0 h-5 ${getHealthStatusColor(block.healthStatus)}`}>
-                                {block.healthStatus}
-                              </Badge>
-                              {(block.moisture !== '--') && (
-                                <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                  <Droplets className="w-3 h-3" /> {block.moisture}%
-                                </span>
-                              )}
-                              {(block.temp !== '--') && (
-                                <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                  <Thermometer className="w-3 h-3" /> {block.temp}°
-                                </span>
-                              )}
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {farmBlocks.length > 0 ? (
+                      <>
+                        {farmBlocks.map((block: any) => (
+                          <div
+                            key={block.id}
+                            className={`group relative p-4 rounded-2xl border transition-all hover:shadow-md cursor-pointer flex flex-col justify-between aspect-square
+                              ${block.healthStatus === 'healthy' ? 'bg-emerald-50 border-emerald-100 hover:border-emerald-300' :
+                                block.healthStatus === 'warning' ? 'bg-amber-50 border-amber-100 hover:border-amber-300' :
+                                  block.healthStatus === 'critical' ? 'bg-rose-50 border-rose-100 hover:border-rose-300' :
+                                    'bg-slate-50 border-slate-100 hover:border-slate-300'
+                              }`}
+                          >
+                            <div className="absolute top-3 right-3">
+                              <div className={`w-3 h-3 rounded-full ${block.healthStatus === 'healthy' ? 'bg-emerald-500' :
+                                block.healthStatus === 'warning' ? 'bg-amber-500' :
+                                  block.healthStatus === 'critical' ? 'bg-rose-500' :
+                                    'bg-slate-400'
+                                } shadow-sm`} />
+                            </div>
+
+                            <div className="mt-2">
+                              <Leaf className={`w-6 h-6 mb-2 ${block.healthStatus === 'healthy' ? 'text-emerald-600' :
+                                block.healthStatus === 'warning' ? 'text-amber-600' :
+                                  block.healthStatus === 'critical' ? 'text-rose-600' :
+                                    'text-slate-400'
+                                }`} />
+                              <h4 className="font-bold text-sm text-[#0a1f16] line-clamp-2">{block.name}</h4>
+                              <p className="text-[10px] text-gray-500 uppercase font-medium mt-0.5">{block.crop || 'Mixed'}</p>
+                            </div>
+
+                            <div className="space-y-2 mt-3">
+                              <div className="flex justify-between text-xs text-gray-600">
+                                <span className="flex items-center gap-1"><Droplets className="w-3 h-3" /> {block.moisture !== '--' ? `${block.moisture}%` : '--'}</span>
+                                <span className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> {block.temp !== '--' ? `${block.temp}°` : '--'}</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${block.healthStatus === 'healthy' ? 'bg-emerald-500' :
+                                    block.healthStatus === 'warning' ? 'bg-amber-500' :
+                                      block.healthStatus === 'critical' ? 'bg-rose-500' :
+                                        'bg-slate-400'
+                                    }`}
+                                  style={{ width: `${block.progress}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <span className="text-sm font-bold">{block.progress}%</span>
+                        ))}
+                        {/* Add Block Placeholder */}
+                        <Link href="/farm/new" className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-[#22c55e] hover:border-[#22c55e] hover:bg-[#22c55e]/5 transition-all aspect-square group">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-[#22c55e]/20 flex items-center justify-center mb-2 transition-colors">
+                            <span className="text-2xl font-light leading-none pb-1">+</span>
+                          </div>
+                          <span className="text-xs font-bold uppercase tracking-wide">Add Plot</span>
+                        </Link>
+                      </>
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-gray-400 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="mb-2">No blocks mapped yet.</p>
+                        <Link href="/setup">
+                          <Button size="sm" variant="outline">Start Setup</Button>
+                        </Link>
                       </div>
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#0a1f16] to-[#2d5a47] rounded-full"
-                          style={{ width: `${block.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-6 text-gray-400 text-sm">No blocks configured</div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

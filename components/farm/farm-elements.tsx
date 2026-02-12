@@ -63,28 +63,241 @@ export function Ground() {
     );
 }
 
-const CropPlant = ({ position, progress, cropName }: { position: [number, number, number], progress: number, cropName: string }) => {
-    // Determine scale based on progress (0-100)
-    const scale = 0.2 + (progress / 100) * 0.8;
-    const { stemColor, fruitColor } = getCropStyle(cropName, progress);
-
+// High-contrast silhouettes for distinct crops
+const MaizePlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.5 + (progress / 100) * 1.5; // Tallest crop
     return (
         <group position={position}>
-            {/* Stem */}
+            {/* Tall thick stalk */}
             <mesh position={[0, scale / 2, 0]} castShadow>
-                <cylinderGeometry args={[0.05, 0.05, scale, 6]} />
-                <meshStandardMaterial color={stemColor} />
+                <cylinderGeometry args={[0.04, 0.06, scale, 6]} />
+                <meshStandardMaterial color={colors.stem} />
             </mesh>
-            {/* Foliage/Fruit */}
+            {/* Cone top (Tassel) - distinct silhouette */}
             <mesh position={[0, scale, 0]} castShadow>
-                <dodecahedronGeometry args={[scale * 0.4, 0]} />
-                <meshStandardMaterial color={fruitColor} />
+                <coneGeometry args={[0.15, 0.5, 6]} />
+                <meshStandardMaterial color={colors.fruit} />
+            </mesh>
+            {/* Side Leaves */}
+            <mesh position={[0.15, scale * 0.5, 0]} rotation={[0, 0, -0.5]} castShadow>
+                <boxGeometry args={[0.3, 0.05, 0.1]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            <mesh position={[-0.15, scale * 0.6, 0]} rotation={[0, 0, 0.5]} castShadow>
+                <boxGeometry args={[0.3, 0.05, 0.1]} />
+                <meshStandardMaterial color={colors.stem} />
             </mesh>
         </group>
     );
 };
 
-export function FarmPlot({ position, width, depth, color, cropName, progress, onClick }: FarmPlotProps) {
+const WheatPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.3 + (progress / 100);
+    return (
+        <group position={position}>
+            {/* V-Shape / Fan silhouette - No central trunk */}
+            <group rotation={[0.2, 0, 0]}>
+                <mesh position={[0, scale / 2, 0]} castShadow>
+                    <cylinderGeometry args={[0.01, 0.01, scale, 4]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+                <mesh position={[0, scale, 0]} castShadow>
+                    <coneGeometry args={[0.05, 0.2, 4]} />
+                    <meshStandardMaterial color={colors.fruit} />
+                </mesh>
+            </group>
+            <group rotation={[-0.2, 1, 0]} position={[0.05, 0, 0.05]}>
+                <mesh position={[0, scale * 0.9 / 2, 0]} castShadow>
+                    <cylinderGeometry args={[0.01, 0.01, scale * 0.9, 4]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+                <mesh position={[0, scale * 0.9, 0]} castShadow>
+                    <coneGeometry args={[0.05, 0.2, 4]} />
+                    <meshStandardMaterial color={colors.fruit} />
+                </mesh>
+            </group>
+            <group rotation={[0.2, -1, 0]} position={[-0.05, 0, -0.05]}>
+                <mesh position={[0, scale * 0.8 / 2, 0]} castShadow>
+                    <cylinderGeometry args={[0.01, 0.01, scale * 0.8, 4]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+                <mesh position={[0, scale * 0.8, 0]} castShadow>
+                    <coneGeometry args={[0.05, 0.2, 4]} />
+                    <meshStandardMaterial color={colors.fruit} />
+                </mesh>
+            </group>
+        </group>
+    );
+};
+
+const RootPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.2 + (progress / 100) * 0.5;
+    return (
+        <group position={position}>
+            {/* Mound/Star shape on ground - Distinct low profile */}
+            <mesh position={[0, scale * 0.3, 0]} castShadow>
+                <octahedronGeometry args={[scale, 0]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            {/* Fruit peeking out */}
+            {progress > 50 && (
+                <mesh position={[0, 0.1, 0]} castShadow>
+                    <dodecahedronGeometry args={[0.15, 0]} />
+                    <meshStandardMaterial color={colors.fruit} />
+                </mesh>
+            )}
+        </group>
+    );
+};
+
+
+const SunflowerPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.5 + (progress / 100);
+    return (
+        <group position={position}>
+            <mesh position={[0, scale / 2, 0]} castShadow>
+                <cylinderGeometry args={[0.02, 0.02, scale, 6]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            {/* Flower Head - Flat disk */}
+            <mesh position={[0.05, scale, 0.05]} rotation={[0.5, 0, 0]} castShadow>
+                <cylinderGeometry args={[0.2, 0.2, 0.05, 8]} />
+                <meshStandardMaterial color="#facc15" /> {/* Always Yellow */}
+            </mesh>
+            {/* Dark center */}
+            <mesh position={[0.05, scale, 0.08]} rotation={[0.5, 0, 0]} castShadow>
+                <cylinderGeometry args={[0.08, 0.08, 0.06, 8]} />
+                <meshStandardMaterial color="#3f2e18" />
+            </mesh>
+        </group>
+    );
+};
+
+const PumpkinPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.2 + (progress / 100) * 0.5;
+    return (
+        <group position={position}>
+            {/* Ground Vines - Flat circle */}
+            <mesh position={[0, 0.05, 0]} castShadow>
+                <circleGeometry args={[scale, 8]} />
+                <meshStandardMaterial color={colors.stem} side={THREE.DoubleSide} />
+            </mesh>
+            {/* The Pumpkin/Melon */}
+            {progress > 30 && (
+                <mesh position={[0, scale * 0.4, 0]} castShadow>
+                    <sphereGeometry args={[scale * 0.5, 8, 8]} />
+                    <meshStandardMaterial color={colors.fruit} />
+                </mesh>
+            )}
+        </group>
+    );
+};
+
+const ShrubPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.3 + (progress / 100) * 0.5;
+    return (
+        <group position={position}>
+            {/* Main Bush */}
+            <mesh position={[0, scale * 0.6, 0]} castShadow>
+                <dodecahedronGeometry args={[scale, 0]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            {/* Berries scattered */}
+            {progress > 50 && (
+                <group>
+                    <mesh position={[scale * 0.4, scale * 0.8, 0]}><sphereGeometry args={[0.05]} /><meshStandardMaterial color={colors.fruit} /></mesh>
+                    <mesh position={[-scale * 0.4, scale * 0.6, 0.2]}><sphereGeometry args={[0.05]} /><meshStandardMaterial color={colors.fruit} /></mesh>
+                    <mesh position={[0, scale * 0.9, -scale * 0.3]}><sphereGeometry args={[0.05]} /><meshStandardMaterial color={colors.fruit} /></mesh>
+                </group>
+            )}
+        </group>
+    );
+};
+
+const BananaPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.5 + (progress / 100) * 1.5;
+    return (
+        <group position={position}>
+            {/* Thick Trunk */}
+            <mesh position={[0, scale / 2, 0]} castShadow>
+                <cylinderGeometry args={[0.06, 0.08, scale, 6]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            {/* Drooping Leaves - Curved planes/boxes */}
+            <group position={[0, scale * 0.8, 0]}>
+                <mesh position={[0.3, 0.2, 0]} rotation={[0, 0, -0.5]}>
+                    <boxGeometry args={[0.6, 0.02, 0.2]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+                <mesh position={[-0.3, 0.3, 0.1]} rotation={[0, 0, 0.5]}>
+                    <boxGeometry args={[0.6, 0.02, 0.2]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+                <mesh position={[0, 0.25, -0.3]} rotation={[0.5, 0, 0]}>
+                    <boxGeometry args={[0.2, 0.02, 0.6]} />
+                    <meshStandardMaterial color={colors.stem} />
+                </mesh>
+            </group>
+            {/* Banana Bunch */}
+            {progress > 60 && (
+                <mesh position={[0.1, scale * 0.7, 0.1]} rotation={[0, 0, -0.2]}>
+                    <capsuleGeometry args={[0.05, 0.2, 4, 8]} />
+                    <meshStandardMaterial color="#fef08a" />
+                </mesh>
+            )}
+        </group>
+    );
+};
+
+const GenericPlant = ({ position, progress, colors }: { position: [number, number, number], progress: number, colors: { stem: string, fruit: string } }) => {
+    const scale = 0.2 + (progress / 100) * 0.8;
+    return (
+        <group position={position}>
+            <mesh position={[0, scale / 2, 0]} castShadow>
+                <cylinderGeometry args={[0.05, 0.05, scale, 6]} />
+                <meshStandardMaterial color={colors.stem} />
+            </mesh>
+            <mesh position={[0, scale, 0]} castShadow>
+                <dodecahedronGeometry args={[scale * 0.4, 0]} />
+                <meshStandardMaterial color={colors.fruit} />
+            </mesh>
+        </group>
+    );
+};
+
+const CropPlant = ({ position, progress, cropName, cropType }: { position: [number, number, number], progress: number, cropName: string, cropType?: string }) => {
+    const { stemColor, fruitColor } = getCropStyle(cropType || cropName, progress);
+    const colors = { stem: stemColor, fruit: fruitColor };
+
+    // Use cropType if available, otherwise analyze cropName
+    const typeKey = (cropType || cropName).toLowerCase();
+
+    if (typeKey.includes('maize') || typeKey.includes('corn')) {
+        return <MaizePlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('wheat') || typeKey.includes('rice') || typeKey.includes('grass') || typeKey.includes('barley')) {
+        return <WheatPlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('potato') || typeKey.includes('carrot') || typeKey.includes('root') || typeKey.includes('onion') || typeKey.includes('beet')) {
+        return <RootPlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('sunflower')) {
+        return <SunflowerPlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('pumpkin') || typeKey.includes('melon') || typeKey.includes('squash') || typeKey.includes('watermelon')) {
+        return <PumpkinPlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('coffee') || typeKey.includes('tea') || typeKey.includes('shrub') || typeKey.includes('bush') || typeKey.includes('berry')) {
+        return <ShrubPlant position={position} progress={progress} colors={colors} />;
+    }
+    if (typeKey.includes('banana') || typeKey.includes('plantain') || typeKey.includes('palm')) {
+        return <BananaPlant position={position} progress={progress} colors={colors} />;
+    }
+
+    return <GenericPlant position={position} progress={progress} colors={colors} />;
+};
+
+export function FarmPlot({ position, width, depth, color, cropName, cropType, progress, onClick }: FarmPlotProps & { cropType?: string }) {
     const [hovered, setHover] = useState(false);
 
     // Calculate number of plants based on area
@@ -97,7 +310,7 @@ export function FarmPlot({ position, width, depth, color, cropName, progress, on
             // Random offset for natural look
             const x = (j / cols) * width - width / 2 + 0.4;
             const z = (i / rows) * depth - depth / 2 + 0.4;
-            plants.push(<CropPlant key={`${i}-${j}`} position={[x, 0, z]} progress={progress} cropName={cropName} />);
+            plants.push(<CropPlant key={`${i}-${j}`} position={[x, 0, z]} progress={progress} cropName={cropName} cropType={cropType} />);
         }
     }
 

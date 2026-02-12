@@ -52,6 +52,14 @@ model Block {
   healthStatus String          @default("unknown") // "healthy", "warning", "critical", "unknown"
   progress     Int             @default(0)
   
+  // Layout & Visualization fields
+  structure    String          @default("field") // field, barn, greenhouse, etc.
+  color        String          @default("primary") 
+  gridRow      Int             @default(1)
+  gridCol      Int             @default(1)
+  gridRowSpan  Int             @default(1)
+  gridColSpan  Int             @default(1)
+  
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }

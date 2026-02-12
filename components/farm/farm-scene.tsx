@@ -85,6 +85,7 @@ export function FarmScene({ farmBlocks, onBlockClick }: FarmSceneProps) {
                                         depth={block.gridPosition.rowSpan * 2}
                                         color={block.color}
                                         cropName={block.cropName}
+                                        cropType={block.cropType}
                                         progress={block.progress}
                                         onClick={() => onBlockClick?.(block)}
                                     />

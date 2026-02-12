@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
+import { updateBlockLayout, createBlock, deleteBlock } from '@/app/actions/farm';
 
 const FarmScene = dynamic(() => import('@/components/farm/farm-scene').then(mod => mod.FarmScene), {
   ssr: false,
@@ -51,8 +52,9 @@ const FarmScene = dynamic(() => import('@/components/farm/farm-scene').then(mod 
 });
 
 type FarmBlock = {
-  id: number;
+  id: number | string; // Allow string IDs from DB
   cropName: string;
+  cropType?: string; // Explicit crop variety
   blockName: string;
   color: string;
   progress: number;
@@ -69,7 +71,7 @@ type FarmBlock = {
     temperature: number;
     humidity: number;
   };
-  healthStatus?: 'healthy' | 'warning' | 'critical';
+  healthStatus?: 'healthy' | 'warning' | 'critical' | 'unknown'; // Updated to match DB
   predictedHarvest?: Date;
   voiceNotes?: Array<{
     id: string;
@@ -83,6 +85,20 @@ type FarmBlock = {
     timestamp: Date;
   }>;
 };
+
+const cropTypeOptions = [
+  { value: "maize", label: "Maize / Corn" },
+  { value: "wheat", label: "Wheat / Grain" },
+  { value: "rice", label: "Rice" },
+  { value: "potato", label: "Potato" },
+  { value: "carrot", label: "Carrot" },
+  { value: "sunflower", label: "Sunflower" },
+  { value: "pumpkin", label: "Pumpkin / Melon" },
+  { value: "coffee", label: "Coffee Shrub" },
+  { value: "tea", label: "Tea Bush" },
+  { value: "banana", label: "Banana / Plantain" },
+  { value: "generic", label: "Other / Generic" },
+];
 
 const colorOptions = [
   {
@@ -122,7 +138,7 @@ const colorOptions = [
   },
 ];
 
-const structureIcons = {
+const structureIcons: Record<string, string> = {
   field: "🌱",
   barn: "🏭",
   house: "🏡",
@@ -132,80 +148,32 @@ const structureIcons = {
   generator: "⚡",
 };
 
+const cropIcons: Record<string, string> = {
+  maize: "🌽",
+  wheat: "🌾",
+  rice: "🍚",
+  potato: "🥔",
+  carrot: "🥕",
+  sunflower: "🌻",
+  pumpkin: "🎃",
+  coffee: "☕",
+  tea: "🍵",
+  banana: "🍌",
+  generic: "🌱",
+};
+
 export default function FarmTwinPage() {
-  const [farmBlocks, setFarmBlocks] = useState<FarmBlock[]>([
-    {
-      id: 1,
-      cropName: "Maize",
-      blockName: "Block A",
-      color: "primary",
-      progress: 60,
-      gridPosition: { row: 1, col: 1, rowSpan: 2, colSpan: 2 },
-      structure: "field",
-      sensorData: {
-        soilMoisture: 42,
-        temperature: 24,
-        humidity: 65,
-      },
-      healthStatus: 'healthy',
-      predictedHarvest: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 2,
-      cropName: "Beans",
-      blockName: "Block B",
-      color: "yellow",
-      progress: 85,
-      gridPosition: { row: 1, col: 3, rowSpan: 1, colSpan: 2 },
-      structure: "field",
-      sensorData: {
-        soilMoisture: 38,
-        temperature: 26,
-        humidity: 60,
-      },
-      healthStatus: 'warning',
-      predictedHarvest: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 3,
-      cropName: "Storage",
-      blockName: "Main Barn",
-      color: "brown",
-      progress: 100,
-      gridPosition: { row: 3, col: 1, rowSpan: 1, colSpan: 1 },
-      structure: "barn",
-    },
-    {
-      id: 4,
-      cropName: "Greenhouse",
-      blockName: "Tomatoes",
-      color: "lightgreen",
-      progress: 45,
-      gridPosition: { row: 2, col: 3, rowSpan: 2, colSpan: 2 },
-      structure: "greenhouse",
-      sensorData: {
-        soilMoisture: 55,
-        temperature: 28,
-        humidity: 75,
-      },
-      healthStatus: 'healthy',
-      predictedHarvest: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 5,
-      cropName: "Irrigation",
-      blockName: "Pump St.",
-      color: "darkgreen",
-      progress: 100,
-      gridPosition: { row: 3, col: 2, rowSpan: 1, colSpan: 1 },
-      structure: "irrigation",
-    },
-  ]);
+  // ... (rest of component starts here)
+
+  const [farmBlocks, setFarmBlocks] = useState<FarmBlock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [farmId, setFarmId] = useState<string | null>(null);
 
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [editingBlock, setEditingBlock] = useState<FarmBlock | null>(null);
   const [newBlockName, setNewBlockName] = useState("");
   const [newCropName, setNewCropName] = useState("");
+  const [newCropType, setNewCropType] = useState<string>("generic"); // Explicit crop variety
   const [newBlockColor, setNewBlockColor] = useState("primary");
   const [newStructureType, setNewStructureType] = useState<FarmBlock['structure']>('field');
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
@@ -213,8 +181,50 @@ export default function FarmTwinPage() {
   const [weather, setWeather] = useState<any>(null);
 
   useEffect(() => {
-    loadWeather();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([loadFarmBlocks(), loadWeather()]);
+    setLoading(false);
+  };
+
+  const loadFarmBlocks = async () => {
+    try {
+      const res = await fetch('/api/dashboard');
+      if (res.ok) {
+        const data = await res.json();
+
+        if (data.farm) {
+          setFarmId(data.farm.id);
+        }
+
+        if (data.blocks) {
+          const mappedBlocks = data.blocks.map((b: any) => ({
+            id: b.id,
+            cropName: b.structure === 'field' ? (b.name.split(' ').length > 1 ? b.name : b.name) : b.name,
+            cropType: b.cropType, // Map from DB
+            blockName: b.name,
+            color: b.color || 'primary',
+            progress: b.progress,
+            gridPosition: b.gridPosition || { row: 1, col: 1, rowSpan: 1, colSpan: 1 },
+            structure: (b.structure as FarmBlock['structure']) || 'field',
+            sensorData: (b.moisture !== '--') ? {
+              soilMoisture: parseFloat(b.moisture),
+              temperature: parseFloat(b.temp),
+              humidity: 60 // Mock
+            } : undefined,
+            healthStatus: b.healthStatus,
+          }));
+          setFarmBlocks(mappedBlocks);
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to load farm data");
+      console.error(error);
+    }
+  };
 
   const loadWeather = async () => {
     try {
@@ -252,44 +262,116 @@ export default function FarmTwinPage() {
     }
   };
 
-  const handleAddBlock = () => {
-    if (!newCropName.trim() || !newBlockName.trim()) {
+  const handleAddBlock = async () => {
+    if (!newCropName.trim() && newStructureType === 'field') {
+      toast.error("Please enter crop name");
+      return;
+    }
+    if (!newBlockName.trim()) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    const newBlock: FarmBlock = {
-      id: Date.now(),
-      cropName: newCropName,
-      blockName: newBlockName,
-      color: newBlockColor,
-      progress: 0,
-      gridPosition: { row: 4, col: 4, rowSpan: 1, colSpan: 1 },
+    if (!farmId) {
+      toast.error("Farm ID missing. Please refresh.");
+      return;
+    }
+
+    const toastId = toast.loading("Creating block...");
+
+    // Default position: find first empty spot or default
+    // Simple grid finding logic (same as before)
+    let row = 1, col = 1;
+    let found = false;
+    for (let r = 1; r <= 4; r++) {
+      for (let c = 1; c <= 5; c++) {
+        const occupied = farmBlocks.some(b =>
+          b.gridPosition.row === r && b.gridPosition.col === c
+        );
+        if (!occupied) {
+          row = r;
+          col = c;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    const newBlockData = {
+      name: newBlockName,
+      cropType: newCropType || newCropName.toLowerCase().split(' ')[0], // Explicit or infer simple
       structure: newStructureType,
+      color: newBlockColor,
+      gridRow: row,
+      gridCol: col,
+      gridRowSpan: 1,
+      gridColSpan: 1
     };
-    setFarmBlocks([...farmBlocks, newBlock]);
-    setNewCropName("");
-    setNewBlockName("");
-    setNewBlockColor("primary");
-    setNewStructureType('field');
-    setAddBlockDialogOpen(false);
-    toast.success(`${newBlockName} added!`);
+
+    const result = await createBlock(farmId, newBlockData);
+
+    if (result.success) {
+      toast.dismiss(toastId);
+      toast.success("Block created!");
+      setAddBlockDialogOpen(false);
+      // Reset form
+      setNewCropName("");
+      setNewBlockName("");
+      setNewCropType("generic");
+      setNewBlockColor("primary");
+      setNewStructureType('field');
+      // Reload
+      loadFarmBlocks();
+    } else {
+      toast.dismiss(toastId);
+      toast.error("Failed to create block");
+    }
   };
 
-  const handleUpdateBlock = () => {
+  const handleUpdateBlock = async () => {
     if (!editingBlock) return;
-    setFarmBlocks(
-      farmBlocks.map((block) =>
-        block.id === editingBlock.id ? editingBlock : block
-      )
-    );
-    setEditingBlock(null);
-    toast.success("Block updated!");
+
+    const toastId = toast.loading("Saving changes...");
+
+    const result = await updateBlockLayout(String(editingBlock.id), {
+      gridRow: editingBlock.gridPosition.row,
+      gridCol: editingBlock.gridPosition.col,
+      gridRowSpan: editingBlock.gridPosition.rowSpan,
+      gridColSpan: editingBlock.gridPosition.colSpan,
+      color: editingBlock.color,
+      structure: editingBlock.structure,
+      cropType: editingBlock.cropType, // Pass explicitly
+      description: editingBlock.description
+    });
+
+    if (result.success) {
+      toast.dismiss(toastId);
+      toast.success("Block updated!");
+      setEditingBlock(null);
+      // Reload to get fresh state
+      loadFarmBlocks();
+    } else {
+      toast.dismiss(toastId);
+      toast.error("Failed to update block");
+    }
   };
 
-  const handleDeleteBlock = (id: number) => {
-    setFarmBlocks(farmBlocks.filter((block) => block.id !== id));
-    toast.success("Block removed!");
+  const handleDeleteBlock = async (id: number | string) => {
+    if (!confirm("Are you sure you want to delete this block?")) return;
+
+    const toastId = toast.loading("Deleting...");
+    const result = await deleteBlock(String(id));
+
+    if (result.success) {
+      toast.dismiss(toastId);
+      toast.success("Block removed!");
+      setFarmBlocks(farmBlocks.filter((block) => block.id !== id));
+      setEditingBlock(null);
+    } else {
+      toast.dismiss(toastId);
+      toast.error("Failed to delete block");
+    }
   };
 
   return (
@@ -372,7 +454,6 @@ export default function FarmTwinPage() {
         </section>
 
         {/* Farm Map Visualization */}
-        {/* Farm Map Visualization */}
         {viewMode === '3d' ? (
           <div className="relative w-full h-[600px] rounded-3xl overflow-hidden shadow-xl bg-black/5">
             <FarmScene farmBlocks={farmBlocks} onBlockClick={setEditingBlock} />
@@ -414,7 +495,15 @@ export default function FarmTwinPage() {
                 <AnimatePresence>
                   {farmBlocks.map((block) => {
                     const colors = getColorClasses(block.color);
-                    const icon = structureIcons[block.structure];
+                    let icon = structureIcons[block.structure] || structureIcons['field'];
+
+                    if (block.structure === 'field') {
+                      const typeKey = (block.cropType || block.cropName || "").toLowerCase();
+                      const match = Object.keys(cropIcons).find(k => typeKey.includes(k));
+                      if (match) {
+                        icon = cropIcons[match];
+                      }
+                    }
                     return (
                       <motion.div
                         layout
@@ -530,10 +619,23 @@ export default function FarmTwinPage() {
                           </Select>
                         </div>
                         {newStructureType === 'field' && (
-                          <div className="grid gap-2">
-                            <Label>Crop Name</Label>
-                            <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Maize" />
-                          </div>
+                          <>
+                            <div className="grid gap-2">
+                              <Label>Crop Variety</Label>
+                              <Select value={newCropType} onValueChange={setNewCropType}>
+                                <SelectTrigger><SelectValue placeholder="Select crop type" /></SelectTrigger>
+                                <SelectContent>
+                                  {cropTypeOptions.map((c) => (
+                                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Block Name / Label</Label>
+                              <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Field 1" />
+                            </div>
+                          </>
                         )}
                         <div className="grid gap-2">
                           <Label>Theme Color</Label>
@@ -580,13 +682,45 @@ export default function FarmTwinPage() {
                     <Label>Col</Label>
                     <Input type="number" value={editingBlock.gridPosition.col} onChange={(e) => setEditingBlock({ ...editingBlock, gridPosition: { ...editingBlock.gridPosition, col: parseInt(e.target.value) } })} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Row Span</Label>
-                    <Input type="number" value={editingBlock.gridPosition.rowSpan} onChange={(e) => setEditingBlock({ ...editingBlock, gridPosition: { ...editingBlock.gridPosition, rowSpan: parseInt(e.target.value) } })} />
+                </div>
+
+                <div className="space-y-4 border-t pt-4 border-gray-200">
+                  <h4 className="font-semibold text-sm">Size & Coverage</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Width (Col Span)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={editingBlock.gridPosition.colSpan}
+                          onChange={(e) => setEditingBlock({ ...editingBlock, gridPosition: { ...editingBlock.gridPosition, colSpan: parseInt(e.target.value) || 1 } })}
+                        />
+                        <span className="text-xs text-gray-500 whitespace-nowrap">columns</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Depth (Row Span)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="4"
+                          value={editingBlock.gridPosition.rowSpan}
+                          onChange={(e) => setEditingBlock({ ...editingBlock, gridPosition: { ...editingBlock.gridPosition, rowSpan: parseInt(e.target.value) || 1 } })}
+                        />
+                        <span className="text-xs text-gray-500 whitespace-nowrap">rows</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Col Span</Label>
-                    <Input type="number" value={editingBlock.gridPosition.colSpan} onChange={(e) => setEditingBlock({ ...editingBlock, gridPosition: { ...editingBlock.gridPosition, colSpan: parseInt(e.target.value) } })} />
+
+                  {/* Coverage Calc */}
+                  <div className="bg-blue-50 p-3 rounded-lg flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-900">Total Coverage</span>
+                    <span className="text-lg font-bold text-blue-700">
+                      {Math.round(((editingBlock.gridPosition.colSpan * editingBlock.gridPosition.rowSpan) / 20) * 100)}%
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -605,10 +739,23 @@ export default function FarmTwinPage() {
                   </Select>
                 </div>
                 {editingBlock.structure === 'field' && (
-                  <div className="space-y-2">
-                    <Label>Crop Name</Label>
-                    <Input value={editingBlock.cropName} onChange={(e) => setEditingBlock({ ...editingBlock, cropName: e.target.value })} />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label>Crop Variety</Label>
+                      <Select value={editingBlock.cropType || "generic"} onValueChange={(val) => setEditingBlock({ ...editingBlock, cropType: val })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {cropTypeOptions.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Block Label</Label>
+                      <Input value={editingBlock.cropName} onChange={(e) => setEditingBlock({ ...editingBlock, cropName: e.target.value })} />
+                    </div>
+                  </>
                 )}
                 <div className="space-y-2">
                   <Label>Description</Label>
