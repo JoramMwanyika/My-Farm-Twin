@@ -62,7 +62,7 @@ type FarmBlock = {
     rowSpan: number;
     colSpan: number;
   };
-  structure: 'field' | 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage';
+  structure: 'field' | 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage' | 'generator';
   description?: string;
   sensorData?: {
     soilMoisture: number;
@@ -129,6 +129,7 @@ const structureIcons = {
   greenhouse: "🌿",
   irrigation: "💧",
   storage: "📦",
+  generator: "⚡",
 };
 
 export default function FarmTwinPage() {
@@ -206,6 +207,7 @@ export default function FarmTwinPage() {
   const [newBlockName, setNewBlockName] = useState("");
   const [newCropName, setNewCropName] = useState("");
   const [newBlockColor, setNewBlockColor] = useState("primary");
+  const [newStructureType, setNewStructureType] = useState<FarmBlock['structure']>('field');
   const [addBlockDialogOpen, setAddBlockDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [weather, setWeather] = useState<any>(null);
@@ -230,6 +232,26 @@ export default function FarmTwinPage() {
     return colorOptions.find((c) => c.value === colorValue) || colorOptions[0];
   };
 
+  const inferStructure = (name: string): FarmBlock['structure'] => {
+    const lower = name.toLowerCase();
+    if (lower.includes('barn') || lower.includes('shed') || lower.includes('store')) return 'barn';
+    if (lower.includes('greenhouse') || lower.includes('tunnel')) return 'greenhouse';
+    if (lower.includes('house') || lower.includes('home') || lower.includes('cottage')) return 'house';
+    if (lower.includes('pump') || lower.includes('water') || lower.includes('well')) return 'irrigation';
+    if (lower.includes('silo') || lower.includes('tank')) return 'storage';
+    if (lower.includes('generator') || lower.includes('power') || lower.includes('diesel') || lower.includes('electric')) return 'generator';
+    if (lower.includes('maize') || lower.includes('bean') || lower.includes('crop') || lower.includes('field')) return 'field';
+    return 'field'; // Default
+  };
+
+  const handleNameChange = (val: string) => {
+    setNewBlockName(val);
+    const inferred = inferStructure(val);
+    if (inferred !== 'field') {
+      setNewStructureType(inferred);
+    }
+  };
+
   const handleAddBlock = () => {
     if (!newCropName.trim() || !newBlockName.trim()) {
       toast.error("Please fill in all fields");
@@ -243,12 +265,13 @@ export default function FarmTwinPage() {
       color: newBlockColor,
       progress: 0,
       gridPosition: { row: 4, col: 4, rowSpan: 1, colSpan: 1 },
-      structure: 'field',
+      structure: newStructureType,
     };
     setFarmBlocks([...farmBlocks, newBlock]);
     setNewCropName("");
     setNewBlockName("");
     setNewBlockColor("primary");
+    setNewStructureType('field');
     setAddBlockDialogOpen(false);
     toast.success(`${newBlockName} added!`);
   };
@@ -489,12 +512,29 @@ export default function FarmTwinPage() {
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label>Block Name</Label>
-                          <Input value={newBlockName} onChange={(e) => setNewBlockName(e.target.value)} placeholder="e.g. North Field" />
+                          <Input value={newBlockName} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. North Barn" />
                         </div>
                         <div className="grid gap-2">
-                          <Label>Crop/Structure</Label>
-                          <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Maize" />
+                          <Label>Structure Type</Label>
+                          <Select value={newStructureType} onValueChange={(val: any) => setNewStructureType(val)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="field">Crop Field</SelectItem>
+                              <SelectItem value="barn">Barn / Shed</SelectItem>
+                              <SelectItem value="greenhouse">Greenhouse</SelectItem>
+                              <SelectItem value="house">Farm House</SelectItem>
+                              <SelectItem value="irrigation">Irrigation / Pump</SelectItem>
+                              <SelectItem value="storage">Storage / Silo</SelectItem>
+                              <SelectItem value="generator">Generator</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
+                        {newStructureType === 'field' && (
+                          <div className="grid gap-2">
+                            <Label>Crop Name</Label>
+                            <Input value={newCropName} onChange={(e) => setNewCropName(e.target.value)} placeholder="e.g. Maize" />
+                          </div>
+                        )}
                         <div className="grid gap-2">
                           <Label>Theme Color</Label>
                           <Select value={newBlockColor} onValueChange={setNewBlockColor}>
@@ -550,9 +590,26 @@ export default function FarmTwinPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Crop Name</Label>
-                  <Input value={editingBlock.cropName} onChange={(e) => setEditingBlock({ ...editingBlock, cropName: e.target.value })} />
+                  <Label>Structure Type</Label>
+                  <Select value={editingBlock.structure} onValueChange={(val: any) => setEditingBlock({ ...editingBlock, structure: val })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="field">Crop Field</SelectItem>
+                      <SelectItem value="barn">Barn / Shed</SelectItem>
+                      <SelectItem value="greenhouse">Greenhouse</SelectItem>
+                      <SelectItem value="house">Farm House</SelectItem>
+                      <SelectItem value="irrigation">Irrigation / Pump</SelectItem>
+                      <SelectItem value="storage">Storage / Silo</SelectItem>
+                      <SelectItem value="generator">Generator</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                {editingBlock.structure === 'field' && (
+                  <div className="space-y-2">
+                    <Label>Crop Name</Label>
+                    <Input value={editingBlock.cropName} onChange={(e) => setEditingBlock({ ...editingBlock, cropName: e.target.value })} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea value={editingBlock.description || ''} onChange={(e) => setEditingBlock({ ...editingBlock, description: e.target.value })} placeholder="Add notes..." />

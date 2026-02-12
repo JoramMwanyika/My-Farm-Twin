@@ -17,12 +17,30 @@ interface FarmPlotProps {
 }
 
 interface FarmStructureProps {
-    type: 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage';
+    type: 'barn' | 'house' | 'greenhouse' | 'irrigation' | 'storage' | 'generator';
     position: [number, number, number];
     onClick?: () => void;
 }
 
 // --- Helper Functions ---
+// --- Helper Functions ---
+const getCropStyle = (cropName: string, progress: number) => {
+    const name = cropName.toLowerCase();
+    let stemColor = "#84cc16";
+    let fruitColor = progress > 80 ? "#facc15" : "#4ade80"; // Default yellow/green
+
+    if (name.includes('tomato') || name.includes('coffee') || name.includes('berry')) {
+        fruitColor = progress > 70 ? "#ef4444" : "#86efac"; // Turn Red
+    } else if (name.includes('maize') || name.includes('corn') || name.includes('wheat')) {
+        stemColor = "#eab308"; // Golden stalk
+        fruitColor = "#fef08a"; // Pale yellow top
+    } else if (name.includes('bean') || name.includes('pea')) {
+        fruitColor = progress > 60 ? "#8b5cf6" : "#4ade80"; // Purple/Green beans
+    }
+
+    return { stemColor, fruitColor };
+};
+
 const getColor = (colorName: string) => {
     switch (colorName) {
         case 'primary': return '#14532d'; // Eco Green
@@ -45,21 +63,22 @@ export function Ground() {
     );
 }
 
-const CropPlant = ({ position, progress, color }: { position: [number, number, number], progress: number, color: string }) => {
+const CropPlant = ({ position, progress, cropName }: { position: [number, number, number], progress: number, cropName: string }) => {
     // Determine scale based on progress (0-100)
     const scale = 0.2 + (progress / 100) * 0.8;
+    const { stemColor, fruitColor } = getCropStyle(cropName, progress);
 
     return (
         <group position={position}>
             {/* Stem */}
             <mesh position={[0, scale / 2, 0]} castShadow>
                 <cylinderGeometry args={[0.05, 0.05, scale, 6]} />
-                <meshStandardMaterial color="#84cc16" />
+                <meshStandardMaterial color={stemColor} />
             </mesh>
             {/* Foliage/Fruit */}
             <mesh position={[0, scale, 0]} castShadow>
                 <dodecahedronGeometry args={[scale * 0.4, 0]} />
-                <meshStandardMaterial color={progress > 80 ? "#facc15" : "#4ade80"} /> {/* Turn yellow/fruit color when ripe */}
+                <meshStandardMaterial color={fruitColor} />
             </mesh>
         </group>
     );
@@ -78,7 +97,7 @@ export function FarmPlot({ position, width, depth, color, cropName, progress, on
             // Random offset for natural look
             const x = (j / cols) * width - width / 2 + 0.4;
             const z = (i / rows) * depth - depth / 2 + 0.4;
-            plants.push(<CropPlant key={`${i}-${j}`} position={[x, 0, z]} progress={progress} color={getColor(color)} />);
+            plants.push(<CropPlant key={`${i}-${j}`} position={[x, 0, z]} progress={progress} cropName={cropName} />);
         }
     }
 
@@ -124,9 +143,13 @@ export function FarmStructure({ type, position, onClick }: FarmStructureProps) {
         case 'barn':
             color = "#b91c1c";
             break;
+        case 'house':
+            color = "#f5f5f5"; // White walls
+            geometry = <boxGeometry args={[2, 1.5, 2]} />;
+            break;
         case 'greenhouse':
             color = "#bae6fd"; // Light blue glass
-            geometry = <cylinderGeometry args={[1.5, 1.5, 2, 8, 1, false, 0, Math.PI]} rotation={[0, 0, Math.PI / 2]} />;
+            geometry = <cylinderGeometry args={[1.5, 1.5, 2, 8, 1, false, 0, Math.PI]} />;
             break;
         case 'irrigation':
             color = "#0ea5e9";
@@ -136,18 +159,23 @@ export function FarmStructure({ type, position, onClick }: FarmStructureProps) {
             color = "#78350f";
             geometry = <boxGeometry args={[1.5, 3, 1.5]} />;
             break;
+        case 'generator':
+            color = "#475569"; // Slate for generator
+            geometry = <boxGeometry args={[2, 1.5, 1.2]} />;
+            break;
     }
 
     return (
         <group position={position} onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+            {/* Main Body */}
             <mesh
-                position={[0, 1, 0]}
+                position={[0, type === 'generator' ? 0.75 : 1, 0]}
                 castShadow
                 receiveShadow
                 onPointerOver={() => setHover(true)}
                 onPointerOut={() => setHover(false)}
             >
-                <boxGeometry args={[1.8, 1.5, 1.8]} />
+                {geometry}
                 <meshStandardMaterial
                     color={color}
                     transparent={type === 'greenhouse'}
@@ -156,11 +184,30 @@ export function FarmStructure({ type, position, onClick }: FarmStructureProps) {
                     emissiveIntensity={hovered ? 0.2 : 0}
                 />
             </mesh>
-            {/* Basic Roof/Detail */}
-            <mesh position={[0, 2, 0]} rotation={[0, Math.PI / 4, 0]}>
-                <coneGeometry args={[1.5, 1, 4]} />
-                <meshStandardMaterial color={type === 'barn' ? '#7f1d1d' : '#333'} />
-            </mesh>
+
+            {/* Details based on type */}
+            {type !== 'greenhouse' && type !== 'irrigation' && type !== 'generator' && (
+                <mesh position={[0, 2, 0]} rotation={[0, Math.PI / 4, 0]}>
+                    <coneGeometry args={[1.5, 1, 4]} />
+                    <meshStandardMaterial color={type === 'barn' ? '#7f1d1d' : type === 'house' ? '#334155' : '#333'} />
+                </mesh>
+            )}
+
+            {/* Generator Details */}
+            {type === 'generator' && (
+                <group position={[0, 1.5, 0]}>
+                    {/* Exhaust Pipe */}
+                    <mesh position={[0.5, 0.2, 0]}>
+                        <cylinderGeometry args={[0.1, 0.1, 1, 8]} />
+                        <meshStandardMaterial color="#1e293b" />
+                    </mesh>
+                    {/* Control Panel */}
+                    <mesh position={[-0.8, -0.3, 0.61]}>
+                        <boxGeometry args={[0.4, 0.6, 0.1]} />
+                        <meshStandardMaterial color="#000" />
+                    </mesh>
+                </group>
+            )}
         </group>
     );
 }
